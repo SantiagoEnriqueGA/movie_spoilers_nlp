@@ -87,7 +87,7 @@ if __name__ == "__main__":
     movies_df['duration_minutes'] = movies_df['duration'].apply(convert_duration_to_minutes)
 
     # Genre encoding (assuming 'genre' is categorical)
-    movies_df = pd.get_dummies(movies_df, columns=['genre'], prefix='genre')
+    # movies_df = pd.get_dummies(movies_df, columns=['genre'], prefix='genre')
 
     # Merge reviews_df and movies_df if necessary based on 'movie_id'
     merged_df = pd.merge(reviews_df, movies_df, on='movie_id', how='inner')
