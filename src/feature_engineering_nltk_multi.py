@@ -3,8 +3,12 @@ import re
 from nltk.tokenize import word_tokenize
 from nltk import sent_tokenize
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import TruncatedSVD
 import nltk
 import multiprocessing as mp
+from datetime import datetime
+
 # nltk.download('punkt')
 # nltk.download('vader_lexicon')
 # nltk.download('averaged_perceptron_tagger')
@@ -77,7 +81,10 @@ if __name__ == "__main__":
     # 2. Date-Based Features
     # ------------------------------------------------------------------------------------------------------------
 
-    reviews_df['review_year'] = pd.to_datetime(reviews_df['review_date']).dt.year
+    reviews_df['review_date'] = pd.to_datetime(reviews_df['review_date'])
+    reviews_df['review_year'] = reviews_df['review_date'].dt.year
+    reviews_df['review_month'] = reviews_df['review_date'].dt.month
+    reviews_df['review_day'] = reviews_df['review_date'].dt.day
 
     print('Movie Details Features')
     # 3. Movie Details Features
@@ -102,15 +109,31 @@ if __name__ == "__main__":
 
     # Merge rating_stats with merged_df on 'movie_id'
     final_df = pd.merge(merged_df, rating_stats, on='movie_id', how='left')
+    
+    
+    print('TF-IDF Features')
+    # 5. TF-IDF Features
+    # ------------------------------------------------------------------------------------------------------------
+    # TF-IDF Features
+    tfidf = TfidfVectorizer(max_features=1000)
+    tfidf_matrix = tfidf.fit_transform(final_df['review_text'])
+    tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=tfidf.get_feature_names_out())
+    # final_df = pd.concat([final_df, tfidf_df], axis=1)
 
+    # SVD for dimensionality reduction of TF-IDF features
+    svd = TruncatedSVD(n_components=100)
+    svd_matrix = svd.fit_transform(tfidf_matrix)
+    svd_df = pd.DataFrame(svd_matrix, columns=[f'svd_{i}' for i in range(100)])
+    final_df = pd.concat([final_df, svd_df], axis=1)
+    
 
     print('Saving')
     # Save the engineered datasets
     # ------------------------------------------------------------------------------------------------------------
-    reviews_df.to_parquet('data/processed/reviews_engineered.parquet', index=False)
-    movies_df.to_parquet('data/processed/movies_engineered.parquet', index=False)
-    merged_df.to_parquet('data/processed/merged.parquet', index=False)
-    final_df.to_parquet('data/processed/final_engineered.parquet', index=False)
+    reviews_df.to_parquet('data/processed/v2/reviews_engineered.parquet', index=False)
+    movies_df.to_parquet('data/processed/v2/movies_engineered.parquet', index=False)
+    merged_df.to_parquet('data/processed/v2/merged.parquet', index=False)
+    final_df.to_parquet('data/processed/v2/final_engineered.parquet', index=False)
 
     # # Load Parquet files back into Pandas DataFrames
     # reviews_df = pd.read_parquet('data/processed/reviews_engineered.parquet')

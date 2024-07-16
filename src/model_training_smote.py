@@ -9,10 +9,10 @@ from lightgbm import LGBMClassifier
 from sklearn.metrics import classification_report
 
 # Load the data splits
-X_train = joblib.load('data/processed/splits/smote/X_train.pkl')
-X_test = joblib.load('data/processed/splits/smote/X_test.pkl')
-y_train = joblib.load('data/processed/splits/smote/y_train.pkl')
-y_test = joblib.load('data/processed/splits/smote/y_test.pkl')
+X_train = joblib.load('data/processed/v2/splits/smote/X_train.pkl')
+X_test = joblib.load('data/processed/v2/splits/smote/X_test.pkl')
+y_train = joblib.load('data/processed/v2/splits/smote/y_train.pkl')
+y_test = joblib.load('data/processed/v2/splits/smote/y_test.pkl')
 
 # Models to train
 models = {
@@ -51,5 +51,5 @@ for model_name, model in models.items():
     print(report)
     
     # Save the trained model
-    joblib.dump(model, f'models/smote/{model_name.replace(" ", "_").lower()}_model.pkl')
+    joblib.dump(model, f'models/v2/smote/{model_name.replace(" ", "_").lower()}_model.pkl')
     print(f'Saved {model_name} model.\n')
