@@ -5,20 +5,20 @@ import os
 
 # Load the datasets
 print("Loading datasets...")
-X_test_base = joblib.load('data/processed/splits/base/X_test.pkl')
-y_test_base = joblib.load('data/processed/splits/base/y_test.pkl')
+X_test_base = joblib.load('data/processed/v2/splits/base/X_test.pkl')
+y_test_base = joblib.load('data/processed/v2/splits/base/y_test.pkl')
 
-X_test_smote = joblib.load('data/processed/splits/smote/X_test.pkl')
-y_test_smote = joblib.load('data/processed/splits/smote/y_test.pkl')
+X_test_smote = joblib.load('data/processed/v2/splits/smote/X_test.pkl')
+y_test_smote = joblib.load('data/processed/v2/splits/smote/y_test.pkl')
 
-X_test_smote_pca = joblib.load('data/processed/splits/smote_pca/X_test.pkl')
-y_test_smote_pca = joblib.load('data/processed/splits/smote_pca/y_test.pkl')
+X_test_smote_pca = joblib.load('data/processed/v2/splits/smote_pca/X_test.pkl')
+y_test_smote_pca = joblib.load('data/processed/v2/splits/smote_pca/y_test.pkl')
 
 # Define model paths
 model_paths = {
-    'base': 'models/base/',
-    'smote': 'models/smote/',
-    'smote_pca': 'models/smote_pca/'
+    'base': 'models/v2/base/',
+    'smote': 'models/v2/smote/',
+    'smote_pca': 'models/v2/smote_pca/'
 }
 
 # Define a function to load and evaluate models
@@ -46,7 +46,7 @@ reports = []
 for key, path in model_paths.items():
     print(f"Processing models in: {path}")
     for model_file in os.listdir(path):
-        if model_file.endswith('_model.pkl'):
+        if model_file.endswith('_model.pkl') and "decision_tree" not in model_file:
             model_name = f"{key}_{model_file.split('_model.pkl')[0]}"
             print(f"Evaluating {model_name}...")
             if key == 'base':
@@ -62,7 +62,7 @@ print("Converting reports to DataFrame...")
 report_df = pd.DataFrame(reports)
 
 # Save the DataFrame to a CSV file
-output_file = 'data/processed/evaluation_reports.csv'
+output_file = 'data/processed/evaluation_reports_v2.csv'
 report_df.to_csv(output_file, index=False)
 print(f"Evaluation reports saved to '{output_file}'")
 
