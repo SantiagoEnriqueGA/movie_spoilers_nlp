@@ -1,0 +1,174 @@
+Folder PATH listing for volume OS
+Volume serial number is 8A50-C6EE
+C:.
+|   .gitignore
+|   project_structure.txt
+|   
++---data
+|   +---processed
+|   |   |   evaluation_reports_v1.csv
+|   |   |   evaluation_reports_v2.csv
+|   |   |   movie_details.csv
+|   |   |   reviews.csv
+|   |   |   
+|   |   +---v1
+|   |   |   |   final_engineered.parquet
+|   |   |   |   merged.parquet
+|   |   |   |   movies_engineered.parquet
+|   |   |   |   reviews_engineered.parquet
+|   |   |   |   
+|   |   |   \---splits
+|   |   |       +---base
+|   |   |       |       X_test.pkl
+|   |   |       |       X_train.pkl
+|   |   |       |       y_test.pkl
+|   |   |       |       y_train.pkl
+|   |   |       |       
+|   |   |       +---smote
+|   |   |       |       X_test.pkl
+|   |   |       |       X_train.pkl
+|   |   |       |       y_test.pkl
+|   |   |       |       y_train.pkl
+|   |   |       |       
+|   |   |       \---smote_pca
+|   |   |               X_test.pkl
+|   |   |               X_train.pkl
+|   |   |               y_test.pkl
+|   |   |               y_train.pkl
+|   |   |               
+|   |   \---v2
+|   |       |   final_engineered.parquet
+|   |       |   merged.parquet
+|   |       |   movies_engineered.parquet
+|   |       |   reviews_engineered.parquet
+|   |       |   
+|   |       \---splits
+|   |           +---base
+|   |           |       X_test.pkl
+|   |           |       X_train.pkl
+|   |           |       y_test.pkl
+|   |           |       y_train.pkl
+|   |           |       
+|   |           +---smote
+|   |           |       X_test.pkl
+|   |           |       X_train.pkl
+|   |           |       y_test.pkl
+|   |           |       y_train.pkl
+|   |           |       
+|   |           \---smote_pca
+|   |                   X_test.pkl
+|   |                   X_train.pkl
+|   |                   y_test.pkl
+|   |                   y_train.pkl
+|   |                   
+|   \---raw
+|           IMDB_movie_details.json
+|           IMDB_reviews.json
+|           
++---models
+|   +---v1
+|   |   +---base
+|   |   |       adaboost_model.pkl
+|   |   |       decision_tree_model.pkl
+|   |   |       gradient_boosting_model.pkl
+|   |   |       k-nearest_neighbors_model.pkl
+|   |   |       lightgbm_model.pkl
+|   |   |       linear_svc_model.pkl
+|   |   |       logistic_regression_model.pkl
+|   |   |       random_forest_model.pkl
+|   |   |       sgd_classifier_model.pkl
+|   |   |       xgboost_model.pkl
+|   |   |       
+|   |   +---prep
+|   |   |       pca.pkl
+|   |   |       scaler.pkl
+|   |   |       tfidf_vectorizer.pkl
+|   |   |       
+|   |   +---smote
+|   |   |       adaboost_model.pkl
+|   |   |       decision_tree_model.pkl
+|   |   |       gradient_boosting_model.pkl
+|   |   |       k-nearest_neighbors_model.pkl
+|   |   |       lightgbm_model.pkl
+|   |   |       linear_svc_model.pkl
+|   |   |       logistic_regression_model.pkl
+|   |   |       random_forest_model.pkl
+|   |   |       sgd_classifier_model.pkl
+|   |   |       xgboost_model.pkl
+|   |   |       
+|   |   \---smote_pca
+|   |           adaboost_model.pkl
+|   |           decision_tree_model.pkl
+|   |           gradient_boosting_model.pkl
+|   |           k-nearest_neighbors_model.pkl
+|   |           lightgbm_model.pkl
+|   |           linear_svc_model.pkl
+|   |           logistic_regression_model.pkl
+|   |           random_forest_model.pkl
+|   |           sgd_classifier_model.pkl
+|   |           xgboost_model.pkl
+|   |           
+|   \---v2
+|       +---base
+|       |       adaboost_model.pkl
+|       |       decision_tree_model.pkl
+|       |       gradient_boosting_model.pkl
+|       |       k-nearest_neighbors_model.pkl
+|       |       lightgbm_model.pkl
+|       |       linear_svc_model.pkl
+|       |       logistic_regression_model.pkl
+|       |       random_forest_model.pkl
+|       |       sgd_classifier_model.pkl
+|       |       xgboost_model.pkl
+|       |       
+|       +---prep
+|       |       pca.pkl
+|       |       scaler.pkl
+|       |       tfidf_vectorizer.pkl
+|       |       
+|       +---smote
+|       |       adaboost_model.pkl
+|       |       decision_tree_model.pkl
+|       |       gradient_boosting_model.pkl
+|       |       k-nearest_neighbors_model.pkl
+|       |       lightgbm_model.pkl
+|       |       linear_svc_model.pkl
+|       |       logistic_regression_model.pkl
+|       |       random_forest_model.pkl
+|       |       sgd_classifier_model.pkl
+|       |       xgboost_model.pkl
+|       |       
+|       \---smote_pca
+|               adaboost_model.pkl
+|               decision_tree_model.pkl
+|               gradient_boosting_model.pkl
+|               k-nearest_neighbors_model.pkl
+|               lightgbm_model.pkl
+|               linear_svc_model.pkl
+|               logistic_regression_model.pkl
+|               random_forest_model.pkl
+|               sgd_classifier_model.pkl
+|               xgboost_model.pkl
+|               
++---notebooks
+|       01_data_preprocessing.ipynb
+|       02_eda.ipynb
+|       
+\---src
+    |   data_preprocessing.py
+    |   eda.py
+    |   feature_engineering_nltk_multi.py
+    |   model_evaluation.py
+    |   model_training_base.py
+    |   model_training_smote.py
+    |   model_training_smote_pca.py
+    |   model_training_splits.py
+    |   
+    \---_arch
+            feature_engineering_dask.py
+            feature_engineering_nltk.py
+            feature_engineering_SpaCy.py
+            model_training__logReg.py
+            model_training__randFor.py
+            run_all.py
+            

@@ -2,6 +2,7 @@ import joblib
 import pandas as pd
 from sklearn.metrics import classification_report
 import os
+import time
 
 # Load the datasets
 print("Loading datasets...")
@@ -25,8 +26,11 @@ model_paths = {
 def evaluate_model(model_path, X_test, y_test):
     print(f"Evaluating model: {model_path}")
     model = joblib.load(model_path)
+    start_time = time.time()
     y_pred = model.predict(X_test)
+    end_time = time.time()
     report = classification_report(y_test, y_pred, output_dict=True)
+    report['training_time'] = end_time - start_time
     return report
 
 # Define a function to flatten reports into a DataFrame
@@ -46,9 +50,10 @@ reports = []
 for key, path in model_paths.items():
     print(f"Processing models in: {path}")
     for model_file in os.listdir(path):
-        if model_file.endswith('_model.pkl') and "decision_tree" not in model_file:
+        if model_file.endswith('_model.pkl'):
+        # if model_file.endswith('_model.pkl') and "decision_tree" not in model_file and "random_forest" not in model_file and "k-nearest" not in model_file:
             model_name = f"{key}_{model_file.split('_model.pkl')[0]}"
-            print(f"Evaluating {model_name}...")
+
             if key == 'base':
                 report = evaluate_model(os.path.join(path, model_file), X_test_base, y_test_base)
             elif key == 'smote':
