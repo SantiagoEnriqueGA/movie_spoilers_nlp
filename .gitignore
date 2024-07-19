@@ -4,3 +4,4 @@ __pycache__/
 models/
 data/
 _arch/
+runs/
