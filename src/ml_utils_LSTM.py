@@ -86,17 +86,19 @@ def train(model, train_loader, test_loader, criterion, optimizer, scheduler, wri
         epoch_loss = running_loss / len(train_loader.dataset)   # Calculate the average loss per sample
         epoch_accuracy = correct / total                        # Calculate the accuracy
         
-        # Log metrics to TensorBoard
-        writer.add_scalar('Loss/train', epoch_loss, epoch)
-        writer.add_scalar('Accuracy/train', epoch_accuracy, epoch)
-        writer.add_scalar('Learning Rate', optimizer.param_groups[0]['lr'], epoch)
+        if writer is not None:
+            # Log metrics to TensorBoard
+            writer.add_scalar('Loss/train', epoch_loss, epoch)
+            writer.add_scalar('Accuracy/train', epoch_accuracy, epoch)
+            writer.add_scalar('Learning Rate', optimizer.param_groups[0]['lr'], epoch)
         
         # Evaluate on the test set
         test_loss, test_accuracy = evaluate(model, test_loader, criterion, device)
         
-        # Log metrics to TensorBoard
-        writer.add_scalar('Loss/test', test_loss, epoch)
-        writer.add_scalar('Accuracy/test', test_accuracy, epoch)
+        if writer is not None:
+            # Log metrics to TensorBoard
+            writer.add_scalar('Loss/test', test_loss, epoch)
+            writer.add_scalar('Accuracy/test', test_accuracy, epoch)
         
         # Print metrics
         print(f"Epoch [{epoch+1}/{epochs}], "
