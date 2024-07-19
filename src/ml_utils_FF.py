@@ -1,19 +1,8 @@
-import joblib
 import torch
 import torch.nn as nn
-import torch.optim as optim
+from torch.utils.data import Dataset
 from sklearn.metrics import classification_report
-from torch.utils.data import DataLoader, Dataset
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-import datetime
-
-# Load the data splits
-X_train = joblib.load('data/processed/v2/splits/base/X_train.pkl')
-X_test = joblib.load('data/processed/v2/splits/base/X_test.pkl')
-y_train = joblib.load('data/processed/v2/splits/base/y_train.pkl')
-y_test = joblib.load('data/processed/v2/splits/base/y_test.pkl')
 
 # Custom Dataset class to handle sparse matrices
 class SparseDataset(Dataset):
@@ -79,7 +68,7 @@ class EarlyStopping:
                 print(f"Early stopping triggered after {self.counter} epochs.")
 
 # Training function with early stopping
-def train(model, train_loader, test_loader, criterion, optimizer, scheduler, writer, patience=5, epochs=10):
+def train(model, train_loader, test_loader, criterion, optimizer, scheduler, writer, device, patience=5, epochs=10):
     early_stopping = EarlyStopping(patience)    # Initialize the early stopping object
     
     for epoch in range(epochs): # Iterate over the specified number of epochs
@@ -101,7 +90,7 @@ def train(model, train_loader, test_loader, criterion, optimizer, scheduler, wri
             total += labels.size(0)                                 # Increment the total count
             correct += (predicted == labels).sum().item()           # Increment the correct count
         
-        scheduler.step()                                        # Update the learning rate scheduler
+        # scheduler.step()                                        # Update the learning rate scheduler
         epoch_loss = running_loss / len(train_loader.dataset)   # Calculate the average loss per sample
         epoch_accuracy = correct / total                        # Calculate the accuracy
         
@@ -111,7 +100,7 @@ def train(model, train_loader, test_loader, criterion, optimizer, scheduler, wri
         writer.add_scalar('Learning Rate', optimizer.param_groups[0]['lr'], epoch)
         
         # Evaluate on the test set
-        test_loss, test_accuracy = evaluate(model, test_loader, criterion)
+        test_loss, test_accuracy = evaluate(model, test_loader, criterion, device)
         
         # Log metrics to TensorBoard
         writer.add_scalar('Loss/test', test_loss, epoch)
@@ -121,17 +110,20 @@ def train(model, train_loader, test_loader, criterion, optimizer, scheduler, wri
         print(f"Epoch [{epoch+1}/{epochs}], "
               f"Train Loss: {epoch_loss:.4f}, Train Accuracy: {epoch_accuracy:.4f}, "
               f"Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}")
-                
+        
+        # Step the scheduler with the test loss
+        scheduler.step(test_loss) # Use the validation/test loss for ReduceLROnPlateau
+        
         early_stopping(test_loss, model)# Call the early stopping function with the test loss and model
         
         if early_stopping.early_stop:   # Check if early stopping condition is met
             break 
             
     # After training, get classification report
-    get_classification_report(model, test_loader)
+    get_classification_report(model, test_loader, device)
 
 # Evaluation function
-def evaluate(model, test_loader, criterion):
+def evaluate(model, test_loader, criterion, device):
     model.eval()    # Set the model to evaluation mode
     test_loss = 0.0 # Initialize the test loss
     correct = 0     # Initialize the number of correct predictions
@@ -153,7 +145,7 @@ def evaluate(model, test_loader, criterion):
     return test_loss, accuracy
 
 # Function to get classification report
-def get_classification_report(model, test_loader):
+def get_classification_report(model, test_loader, device):
     model.eval()    # Set the model to evaluation mode
     y_true = []     # Initialize the list to store true labels
     y_pred = []     # Initialize the list to store predicted labels
@@ -168,57 +160,3 @@ def get_classification_report(model, test_loader):
     
     print("Classification Report:")
     print(classification_report(y_true, y_pred))
-
-# -------------------------------------------------------------------------------------------------
-# Define model parameters
-lr = 0.001
-batch_size = 64
-dropout_rate = 0.5
-input_dim = X_train.shape[1]
-output_dim = len(y_train.unique())
-hidden_dims = [512, 256, 64]  # Number of units in each hidden layer
-
-# Create DataLoaders
-train_dataset = SparseDataset(X_train, y_train)
-test_dataset = SparseDataset(X_test, y_test)
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-
-# Check if CUDA is available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
-
-# Define the model, send it to the device
-model = ConfigurableNN(input_dim, hidden_dims, dropout_rate)
-model.to(device)
-print(model)
-
-# Define loss function and optimizer
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=lr)
-
-# Define learning rate scheduler
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
-
-# Initialize TensorBoard writer with unique name based on current date and time
-timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-writer = SummaryWriter(f'runs/pytorch_nn_experiment_{timestamp}')
-
-# Log hyperparameters
-hparams = {
-    'lr': lr,
-    'batch_size': batch_size,
-    'hidden_dims': str(hidden_dims),
-    'dropout_rate': dropout_rate
-}
-writer.add_hparams(hparams, {})
-
-# Train the model
-train(model, train_loader, test_loader, criterion, optimizer, scheduler, writer, patience=10, epochs=100)
-
-# Evaluate the model
-evaluate(model, test_loader, criterion)
-
-# Close the TensorBoard writer
-writer.close()
-
