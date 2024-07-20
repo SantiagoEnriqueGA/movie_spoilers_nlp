@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 import datetime
-from src.ml_utils_LSTM import SequenceDataset, ConfigurableLSTM, train, evaluate
+from src.ml_utils_LSTM import SequenceDataset, ConfigurableLSTM, train, evaluate, train_optuna, get_classification_report
 
 # Load the data splits
 X_train = joblib.load('data/processed/v2/splits/base/X_train.pkl')
@@ -14,52 +14,42 @@ X_test = joblib.load('data/processed/v2/splits/base/X_test.pkl')
 y_train = joblib.load('data/processed/v2/splits/base/y_train.pkl')
 y_test = joblib.load('data/processed/v2/splits/base/y_test.pkl')
 
-# Define model parameters
-lr = 0.001
-batch_size = 64
-dropout_rate = 0.5
-input_dim = X_train.shape[1]
-hidden_dim = 128
-num_layers = 2  # Number of LSTM layers
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Create DataLoaders
+best_trial = train_optuna(X_train, y_train, X_test, y_test, input_dim = X_train.shape[1], device = device, n_trials=2, n_epochs=1)
+
+# Extract the best hyperparameters
+best_params = best_trial.params
+hidden_dim = best_params['hidden_dim']
+num_layers = best_params['num_layers']
+dropout_rate = best_params['dropout_rate']
+lr = best_params['lr']
+batch_size = best_params['batch_size']
+patience = 3
+
+# Create DataLoaders for training and test sets
 train_dataset = SequenceDataset(X_train, y_train)
 test_dataset = SequenceDataset(X_test, y_test)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-# Check if CUDA is available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
-
-# Define the model, send it to the device
-model = ConfigurableLSTM(input_dim, hidden_dim, num_layers, dropout_rate)
-model.to(device)
-print(model)
-
-# Define loss function and optimizer
+# Initialize the model, criterion, optimizer, scheduler, and SummaryWriter
+model = ConfigurableLSTM(X_train.shape[1], hidden_dim, num_layers, dropout_rate).to(device)
 criterion = nn.BCEWithLogitsLoss()
 optimizer = optim.Adam(model.parameters(), lr=lr)
+scheduler = ReduceLROnPlateau(optimizer, 'min', patience=patience//2)
+writer = SummaryWriter(log_dir=f'runs/best_trial_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 
-# Define learning rate scheduler
-scheduler = ReduceLROnPlateau(optimizer, mode='min', patience=3, factor=0.5)
+# Train the model with the best hyperparameters
+train(model, train_loader, test_loader, criterion, optimizer, scheduler, writer, device, patience=patience, epochs=50)  # Adjust epochs as needed
 
-# Initialize TensorBoard writer with unique name based on current date and time
-timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-writer = SummaryWriter(f'runs/pytorch_lstm_experiment_{timestamp}_TEST')
+# Save the final model
+torch.save(model.state_dict(), 'models/v2/base/pytorch_lstm_final_model.pth')
 
-# Log hyperparameters
-hparams = {
-    'lr': lr,
-    'batch_size': batch_size,
-    'hidden_dim': hidden_dim,
-    'num_layers': num_layers,
-    'dropout_rate': dropout_rate
-}
-writer.add_hparams(hparams, {})
+# Evaluate the final model
+test_loss, test_accuracy = evaluate(model, test_loader, criterion, device)
+print(f"Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}")
 
-# Train the model
-train(model, train_loader, test_loader, criterion, optimizer, scheduler, writer, device, patience=10, epochs=100)
+# Generate and print the classification report
+get_classification_report(model, test_loader, device)
 
-# Close the TensorBoard writer
-writer.close()
