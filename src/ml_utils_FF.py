@@ -1,8 +1,14 @@
+import joblib
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset
+import torch.optim as optim
 from sklearn.metrics import classification_report
+from torch.utils.data import DataLoader, Dataset
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+import datetime
+from torch.cuda.amp import GradScaler, autocast
 
 # Custom Dataset class to handle sparse matrices
 class SparseDataset(Dataset):
@@ -55,12 +61,13 @@ class EarlyStopping:
         self.best_loss = float('inf')   # Initialize the best loss with infinity
         self.early_stop = False         # Flag to indicate if early stopping condition is met
 
-    def __call__(self, val_loss, model):
+    def __call__(self, val_loss, model, save = True):
         if val_loss < self.best_loss - self.delta:  # Check if validation loss improved
             self.best_loss = val_loss               # Update the best loss
             self.counter = 0                        # Reset the counter
-            torch.save(model.state_dict(), 'models/v2/base/pytorch_nn_best_model.pth')  # Save the model
-            print('Model improved and saved.')
+            if save == True:            
+                torch.save(model.state_dict(), 'models/v2/base/pytorch_nn_best_model.pth')  # Save the model
+                print('Model improved and saved.')
         else:
             self.counter += 1                   # Increment the counter
             if self.counter >= self.patience:   # Check if early stopping condition is met
@@ -162,3 +169,119 @@ def get_classification_report(model, test_loader, device):
     
     print("Classification Report:")
     print(classification_report(y_true, y_pred))
+
+import optuna
+def train_optuna(X_train, y_train, X_val, y_val, input_dim, device, n_trials=100, n_epochs = 25):
+    def objective(trial):
+        # Define the hyperparameter search space
+        hidden_dim = trial.suggest_int('hidden_dim', 64, 1024)
+        num_layers = trial.suggest_int('num_layers', 2, 5)
+        dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.75)
+        lr = trial.suggest_float('lr', 1e-6, 1e-1, log=True)
+        batch_size = trial.suggest_int('batch_size', 32, 128)
+        patience = 5
+
+        # Adjust dropout_rate for less aggressive dropout in hidden layers
+        hidden_dims = [hidden_dim] * num_layers
+        
+        # Create DataLoaders
+        train_dataset = SparseDataset(X_train, y_train)
+        val_dataset = SparseDataset(X_val, y_val)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        test_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+        
+        # Instantiate the model with the suggested hyperparameters
+        model = ConfigurableNN(input_dim, hidden_dims, dropout_rate).to(device)
+        criterion = nn.BCEWithLogitsLoss()  # Use BCEWithLogitsLoss for binary classification
+        optimizer = optim.Adam(model.parameters(), lr=lr)  # Use Adam optimizer with suggested learning rate
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, verbose=True)  # Learning rate scheduler
+        writer = SummaryWriter(log_dir=f'runs/optuna_trial_ff/trial_{trial.number}_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
+        
+        # Training loop
+        early_stopping = EarlyStopping(patience=patience)
+        scaler = GradScaler()
+
+        best_test_accuracy = 0.0
+        
+        # Train the model
+        for epoch in range(n_epochs):
+            model.train()
+            running_loss = 0.0
+            correct = 0
+            total = 0
+            
+            for inputs, labels in tqdm(train_loader, desc=f"Trial {trial.number}, Epoch {epoch+1}/{n_epochs}"):
+                inputs, labels = inputs.to(device), labels.to(device)
+                optimizer.zero_grad()
+
+                with autocast():  # Mixed precision
+                    outputs = model(inputs)
+                    loss = criterion(outputs, labels)
+
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+
+                running_loss += loss.item() * inputs.size(0)
+                predicted = torch.round(torch.sigmoid(outputs))
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+            epoch_loss = running_loss / len(train_loader.dataset)
+            epoch_accuracy = correct / total
+
+            # Log metrics to TensorBoard
+            writer.add_scalar('Loss/train', epoch_loss, epoch)
+            writer.add_scalar('Accuracy/train', epoch_accuracy, epoch)
+            writer.add_scalar('Learning Rate', optimizer.param_groups[0]['lr'], epoch)
+
+            # Evaluate on the test set
+            test_loss, test_accuracy = evaluate(model, test_loader, criterion, device)
+
+            # Log metrics to TensorBoard
+            writer.add_scalar('Loss/test', test_loss, epoch)
+            writer.add_scalar('Accuracy/test', test_accuracy, epoch)
+            
+            # Add test accuracy to Optuna's report
+            trial.report(test_accuracy, epoch)
+
+            # Step the scheduler with the test loss
+            scheduler.step(test_loss)
+
+            early_stopping(test_loss, model, save = False)
+
+            if early_stopping.early_stop or trial.should_prune():
+                writer.close()
+                # Mark trial as complete by returning the best test accuracy so far
+                return best_test_accuracy
+            
+            if test_accuracy > best_test_accuracy:
+                best_test_accuracy = test_accuracy
+
+        writer.close()
+        return test_accuracy
+
+    # Define the Optuna study with storage URL
+    study = optuna.create_study(
+        direction='maximize',
+        storage="sqlite:///optuna_study_FF.db",  # Specify the storage URL here.
+        study_name="lstm-hyperparameter-tuning",
+        load_if_exists=True  # Load the study if it already exists
+    )
+    study.optimize(objective, n_trials=n_trials, n_jobs=-1, gc_after_trial=True, show_progress_bar=True)
+    
+    # Save the study results
+    joblib.dump(study, f"models/v2/optuna_study_FF.pkl")
+    
+    print("Best trial:")
+    trial = study.best_trial
+    print(f"  Value: {trial.value}")
+    print("  Params: ")
+    for key, value in trial.params.items():
+        print(f"    {key}: {value}")
+
+    return study.best_trial
+
+    # Usage
+    # best_trial = train_optuna(X_train, y_train, X_val, y_val, input_dim, device)
+

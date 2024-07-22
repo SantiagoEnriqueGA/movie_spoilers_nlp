@@ -174,12 +174,12 @@ import optuna
 def train_optuna(X_train, y_train, X_val, y_val, input_dim, device, n_trials=100, n_epochs = 25):
     def objective(trial):
         # Define the hyperparameter search space
-        hidden_dim = trial.suggest_int('hidden_dim', 32, 512)
-        num_layers = trial.suggest_int('num_layers', 1, 5)
-        dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.8)
+        hidden_dim = trial.suggest_int('hidden_dim', 64, 1024)
+        num_layers = trial.suggest_int('num_layers', 2, 5)
+        dropout_rate = trial.suggest_float('dropout_rate', 0.1, 0.75)
         lr = trial.suggest_float('lr', 1e-6, 1e-1, log=True) 
-        batch_size = trial.suggest_int('batch_size', 32, 256)
-        patience = 3
+        batch_size = trial.suggest_int('batch_size', 32, 128)
+        patience = 5
         
         # Adjust dropout rate if num_layers is 1
         if num_layers == 1:
@@ -195,21 +195,23 @@ def train_optuna(X_train, y_train, X_val, y_val, input_dim, device, n_trials=100
         model = ConfigurableLSTM(input_dim, hidden_dim, num_layers, dropout_rate).to(device)
         criterion = nn.BCEWithLogitsLoss()
         optimizer = optim.Adam(model.parameters(), lr=lr)
-        scheduler = ReduceLROnPlateau(optimizer, 'min', patience=patience//2)  # Remove verbose parameter
+        scheduler = ReduceLROnPlateau(optimizer, 'min', patience=patience//2)  
         writer = SummaryWriter(log_dir=f'runs/optuna_trial_lstm/trial_{trial.number}_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
         
         # Training loop
         early_stopping = EarlyStopping(patience=patience)
         scaler = GradScaler()
         
+        best_test_accuracy = 0.0
+        
         # Train the model
-        for epoch in range(n_epochs):  # Adjust epochs as needed
+        for epoch in range(n_epochs):
             model.train()
             running_loss = 0.0
             correct = 0
             total = 0
             
-            for inputs, labels in tqdm(train_loader, desc=f"Training Epoch {epoch+1}/{n_epochs}"):
+            for inputs, labels in tqdm(train_loader, desc=f"Trial {trial.number}, Epoch {epoch+1}/{n_epochs}"):
                 inputs, labels = inputs.to(device), labels.to(device)
                 optimizer.zero_grad()
 
@@ -240,16 +242,25 @@ def train_optuna(X_train, y_train, X_val, y_val, input_dim, device, n_trials=100
             # Log metrics to TensorBoard
             writer.add_scalar('Loss/test', test_loss, epoch)
             writer.add_scalar('Accuracy/test', test_accuracy, epoch)
+            
+            # Add test accuracy to Optuna's report
+            trial.report(test_accuracy, epoch)
 
             # Step the scheduler with the test loss
             scheduler.step(test_loss)
 
             early_stopping(test_loss, model, save = False)
 
-            if early_stopping.early_stop:
-                break
+            if early_stopping.early_stop or trial.should_prune():
+                writer.close()
+                # Mark trial as complete by returning the best test accuracy so far
+                return best_test_accuracy
+            
+            if test_accuracy > best_test_accuracy:
+                best_test_accuracy = test_accuracy
 
-        return test_loss
+        writer.close()
+        return test_accuracy
 
     # Define the Optuna study with storage URL
     study = optuna.create_study(
@@ -259,6 +270,9 @@ def train_optuna(X_train, y_train, X_val, y_val, input_dim, device, n_trials=100
         load_if_exists=True  # Load the study if it already exists
     )
     study.optimize(objective, n_trials=n_trials, n_jobs=-1, gc_after_trial=True, show_progress_bar=True)
+    
+    # Save the study results
+    joblib.dump(study, f"models/v2/optuna_study_LSTM.pkl")
     
     print("Best trial:")
     trial = study.best_trial

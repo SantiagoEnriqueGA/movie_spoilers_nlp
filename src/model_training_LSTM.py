@@ -14,9 +14,16 @@ X_test = joblib.load('data/processed/v2/splits/base/X_test.pkl')
 y_train = joblib.load('data/processed/v2/splits/base/y_train.pkl')
 y_test = joblib.load('data/processed/v2/splits/base/y_test.pkl')
 
+# Take a sample of the data for testing logic
+sample_size = 1000 
+X_train = X_train[:sample_size]
+y_train = y_train[:sample_size]
+X_test = X_test[:sample_size]
+y_test = y_test[:sample_size]
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-best_trial = train_optuna(X_train, y_train, X_test, y_test, input_dim = X_train.shape[1], device = device, n_trials=2, n_epochs=1)
+best_trial = train_optuna(X_train, y_train, X_test, y_test, input_dim = X_train.shape[1], device = device, n_trials=36, n_epochs=25)
 
 # Extract the best hyperparameters
 best_params = best_trial.params
@@ -25,7 +32,7 @@ num_layers = best_params['num_layers']
 dropout_rate = best_params['dropout_rate']
 lr = best_params['lr']
 batch_size = best_params['batch_size']
-patience = 3
+patience = 5
 
 # Create DataLoaders for training and test sets
 train_dataset = SequenceDataset(X_train, y_train)
