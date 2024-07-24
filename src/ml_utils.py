@@ -234,8 +234,8 @@ def train_optuna(nn_type, X_train, y_train, X_val, y_val, input_dim, device, n_t
             # Create DataLoaders
             train_dataset = SequenceDataset(X_train, y_train)
             val_dataset = SequenceDataset(X_val, y_val)
-            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-            test_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,  drop_last=True)
+            test_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False,  drop_last=True)
             
             # Initialize the model, criterion, optimizer, scheduler, and SummaryWriter
             model = ConfigurableLSTM(input_dim, hidden_dim, num_layers, dropout_rate).to(device)
@@ -263,8 +263,8 @@ def train_optuna(nn_type, X_train, y_train, X_val, y_val, input_dim, device, n_t
             # Create DataLoaders
             train_dataset = SparseDataset(X_train, y_train)
             val_dataset = SparseDataset(X_val, y_val)
-            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-            test_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,  drop_last=True)
+            test_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False,  drop_last=True)
             
             # Instantiate the model with the suggested hyperparameters
             model = ConfigurableNN(input_dim, hidden_dims, dropout_rate).to(device)
@@ -324,7 +324,8 @@ def train_optuna(nn_type, X_train, y_train, X_val, y_val, input_dim, device, n_t
             # Step the scheduler with the test loss
             scheduler.step(test_loss)
 
-            early_stopping(test_loss, model, save_dir = f'models/v2/base/pytorch_{nn_type}_best_model.pth')
+            # early_stopping(test_loss, model, save_dir = f'models/v2/base/pytorch_{nn_type}_best_model.pth')
+            early_stopping(test_loss, model)
 
             if early_stopping.early_stop or trial.should_prune():
                 writer.close()

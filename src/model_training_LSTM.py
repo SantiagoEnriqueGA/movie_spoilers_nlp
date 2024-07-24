@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 import datetime
-from src.ml_utils_LSTM import SequenceDataset, ConfigurableLSTM, train, evaluate, train_optuna, get_classification_report
+from src.ml_utils import SequenceDataset, ConfigurableLSTM, train, evaluate, train_optuna, get_classification_report
 
 # Load the data splits
 X_train = joblib.load('data/processed/v2/splits/base/X_train.pkl')
@@ -14,8 +14,8 @@ X_test = joblib.load('data/processed/v2/splits/base/X_test.pkl')
 y_train = joblib.load('data/processed/v2/splits/base/y_train.pkl')
 y_test = joblib.load('data/processed/v2/splits/base/y_test.pkl')
 
-# Take a sample of the data for testing logic
-sample_size = 1000 
+# Take a sample of the data for testing
+sample_size = 10000 
 X_train = X_train[:sample_size]
 y_train = y_train[:sample_size]
 X_test = X_test[:sample_size]
@@ -23,7 +23,7 @@ y_test = y_test[:sample_size]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-best_trial = train_optuna(X_train, y_train, X_test, y_test, input_dim = X_train.shape[1], device = device, n_trials=36, n_epochs=25)
+best_trial = train_optuna('LSTM',X_train, y_train, X_test, y_test, input_dim = X_train.shape[1], device = device, n_trials=250, n_epochs=50)
 
 # Extract the best hyperparameters
 best_params = best_trial.params

@@ -5,3 +5,5 @@ models/
 data/
 _arch/
 runs/
+
+*.db

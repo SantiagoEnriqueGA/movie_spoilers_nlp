@@ -1,7 +1,9 @@
+Created with "tree /F /A > project_structure.txt" 
 Folder PATH listing for volume OS
 Volume serial number is 8A50-C6EE
 C:.
 |   .gitignore
+|   optuna_study_LSTM.db
 |   project_structure.txt
 |   
 +---data
@@ -109,14 +111,22 @@ C:.
 |   |           xgboost_model.pkl
 |   |           
 |   \---v2
+|       |   optuna_study.pkl
+|       |   optuna_study_FF.pkl
+|       |   optuna_study_LSTM.pkl
+|       |   
 |       +---base
 |       |       adaboost_model.pkl
 |       |       decision_tree_model.pkl
 |       |       gradient_boosting_model.pkl
 |       |       k-nearest_neighbors_model.pkl
 |       |       lightgbm_model.pkl
+|       |       lightgbm_model_tuned.pkl
 |       |       linear_svc_model.pkl
 |       |       logistic_regression_model.pkl
+|       |       pytorch_FF_best_model.pth
+|       |       pytorch_lstm_best_model.pth
+|       |       pytorch_nn_best_model.pth
 |       |       random_forest_model.pkl
 |       |       sgd_classifier_model.pkl
 |       |       xgboost_model.pkl
@@ -154,21 +164,60 @@ C:.
 |       01_data_preprocessing.ipynb
 |       02_eda.ipynb
 |       
++---runs
+|   +---optuna_trial_lstm
+|   |   +---trial_0_20240722-153511
+|   |   |       events.out.tfevents.1721680511.SEGA-Laptop.38928.9
+|   |   |       
+|   |   +---...
+|   |   \---trial_9_20240722-154202
+|   |           events.out.tfevents.1721680922.SEGA-Laptop.7076.6
+|   |           
+|   +---pytorch_lstm_experiment_2024-07-18_21-28-50
+|   |   |   events.out.tfevents.1721356130.SEGA-Laptop.4756.0
+|   |   |   
+|   |   \---1721356130.5000718
+|   |           events.out.tfevents.1721356130.SEGA-Laptop.4756.1
+|   |           
+|   |    ...
+|   |           
+|   \---pytorch_nn_experiment_2024-07-19_15-32-55
+|       |   events.out.tfevents.1721421175.SEGA-Laptop.28860.2
+|       |   
+|       \---1721421175.2572713
+|               events.out.tfevents.1721421175.SEGA-Laptop.28860.3
+|               
 \---src
     |   data_preprocessing.py
     |   eda.py
     |   feature_engineering_nltk_multi.py
+    |   ml_utils.py
     |   model_evaluation.py
     |   model_training_base.py
+    |   model_training_FF.py
+    |   model_training_LSTM.py
     |   model_training_smote.py
     |   model_training_smote_pca.py
     |   model_training_splits.py
+    |   model_tuning_lightgbm.py
+    |   model_tuning_xgboost.py
     |   
-    \---_arch
-            feature_engineering_dask.py
-            feature_engineering_nltk.py
-            feature_engineering_SpaCy.py
-            model_training__logReg.py
-            model_training__randFor.py
-            run_all.py
+    +---_arch
+    |       feature_engineering_dask.py
+    |       feature_engineering_nltk.py
+    |       feature_engineering_SpaCy.py
+    |       ml_utils_FF.py
+    |       ml_utils_LSTM.py
+    |       model_training_BOTH.py
+    |       model_training_FF_hyperparameter_search.py
+    |       model_training_LSTM_hyperparameter_search.py
+    |       model_training_pytorch_FF_CEL.py
+    |       model_training__logReg.py
+    |       model_training__randFor.py
+    |       run_all.py
+    |       
+    \---__pycache__
+            ml_utils.cpython-311.pyc
+            ml_utils_FF.cpython-311.pyc
+            ml_utils_LSTM.cpython-311.pyc
             
