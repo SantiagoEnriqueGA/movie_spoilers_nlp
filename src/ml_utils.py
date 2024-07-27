@@ -212,9 +212,14 @@ def get_classification_report(model, test_loader, device):
             predicted = torch.round(torch.sigmoid(outputs))         # Get the predicted labels
             y_true.extend(labels.cpu().numpy())                     # Append true labels to the list
             y_pred.extend(predicted.cpu().numpy())                  # Append predicted labels to the list
+            
+    # Convert labels and predictions to integers
+    y_true = [int(label) for label in y_true]
+    y_pred = [int(pred) for pred in y_pred]
     
     print("Classification Report:")
     print(classification_report(y_true, y_pred))
+    return classification_report(y_true, y_pred, output_dict=True)
     
 def train_optuna(nn_type, X_train, y_train, X_val, y_val, input_dim, device, n_trials=100, n_epochs = 25):
     def objective(trial):
