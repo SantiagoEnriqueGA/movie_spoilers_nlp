@@ -81,9 +81,8 @@ reports = []
 for key, path in model_paths.items():
     print(f"\nProcessing models in: {path}")
     for model_file in os.listdir(path):
-        if model_file.endswith('_model.pkl'):
+        if model_file.endswith('.pkl'):
             model_name = f"{key}_{model_file.split('_model.pkl')[0]}"
-
             if key == 'base':
                 report = evaluate_model(os.path.join(path, model_file), X_test_base, y_test_base)
             elif key == 'smote':

@@ -55,5 +55,5 @@ print('Best LightGBM Model Classification Report:')
 print(report)
 
 # Save the best model
-joblib.dump(best_lgbm_full, 'models/v2/base/lightgbm_model_tuned.pkl')
+joblib.dump(best_lgbm_full, 'models/v2/base/_tuned.pkl')
 print('Saved the best LightGBM model trained on full dataset.')

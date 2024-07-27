@@ -52,4 +52,10 @@ save_dir ='models/v2/base/pytorch_ff_best_model.pth'
 # Train the model with the best hyperparameters
 train(model, train_loader, test_loader, criterion, optimizer, scheduler, writer, device, save_dir, patience=patience, epochs=1000)
 
+# Load the saved model
+model.load_state_dict(torch.load(save_dir))
 
+# Evaluate the model on the test set and print the classification report
+clas_report = get_classification_report(model, test_loader, device)
+
+print(clas_report)

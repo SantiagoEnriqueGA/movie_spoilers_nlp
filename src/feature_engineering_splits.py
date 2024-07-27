@@ -26,6 +26,10 @@ df['is_spoiler'] = df['is_spoiler'].astype(int)
 X = df.drop(columns=['is_spoiler', 'review_text', 'plot_summary', 'plot_synopsis', 'movie_id', 'review_date', 'release_date'])
 y = df['is_spoiler']
 
+# Print counts of target classes
+print("Initial target class counts:")
+print(y.value_counts())
+
 # Vectorize the 'review_text' column
 tfidf_vectorizer = TfidfVectorizer(max_features=5000)
 X_text = tfidf_vectorizer.fit_transform(df['review_text'])
@@ -39,6 +43,12 @@ X_combined = hstack([X_scaled, X_text])
 
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X_combined, y, test_size=0.2, random_state=42)
+
+# Print counts of target classes in train and test sets
+print("Training set target class counts:")
+print(y_train.value_counts())
+print("Testing set target class counts:")
+print(y_test.value_counts())
 
 # Save splits
 joblib.dump(X_train, 'data/processed/v2/splits/base/X_train.pkl')
@@ -55,16 +65,20 @@ nearest_neighbors = NearestNeighbors(n_jobs=-1)
 smote = SMOTE(random_state=42, k_neighbors=nearest_neighbors)
 X_train_smote, y_train_smote = smote.fit_resample(X_train, y_train)
 
+# Print counts of target classes after SMOTE
+print("SMOTE-resampled training set target class counts:")
+print(pd.Series(y_train_smote).value_counts())
+
 # Save SMOTE splits
 joblib.dump(X_train_smote, 'data/processed/v2/splits/smote/X_train.pkl')
 joblib.dump(y_train_smote, 'data/processed/v2/splits/smote/y_train.pkl')
 joblib.dump(X_test, 'data/processed/v2/splits/smote/X_test.pkl')
 joblib.dump(y_test, 'data/processed/v2/splits/smote/y_test.pkl')
 
-# X_train_smote = joblib.load('data/processed/v2/splits/smote/X_train.pkl')
-# X_test = joblib.load('data/processed/v2/splits/smote/X_test.pkl')
-# y_train_smote = joblib.load('data/processed/v2/splits/smote/y_train.pkl')
-# y_test = joblib.load('data/processed/v2/splits/smote/y_test.pkl')
+X_train_smote = joblib.load('data/processed/v2/splits/smote/X_train.pkl')
+X_test = joblib.load('data/processed/v2/splits/smote/X_test.pkl')
+y_train_smote = joblib.load('data/processed/v2/splits/smote/y_train.pkl')
+y_test = joblib.load('data/processed/v2/splits/smote/y_test.pkl')
 
 # PCA for Dimensionality Reduction using 95% explained variance heuristic
 initial_pca = IncrementalPCA(n_components=125, batch_size=1000)  # Fit with a batch size equal to the initial number of components
