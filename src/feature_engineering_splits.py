@@ -9,113 +9,95 @@ from imblearn.over_sampling import SMOTE
 from sklearn.decomposition import IncrementalPCA
 from sklearn.neighbors import NearestNeighbors
 
-# Load the merged data
-df = pd.read_parquet('data/processed/v2/final_engineered.parquet')
+df = pd.read_parquet('data/processed/v2/final_engineered.parquet')  # Load the final engineered DataFrame
 
-# Handle missing values
-df['review_summary'] = df['review_summary'].fillna('')
-df['plot_synopsis'] = df['plot_synopsis'].fillna('')
+df['review_summary'] = df['review_summary'].fillna('')  # Fill missing values in 'review_summary' with empty strings
+df['plot_synopsis'] = df['plot_synopsis'].fillna('')    # Fill missing values in 'plot_synopsis' with empty strings
+df['genre'] = df['genre'].astype('category').cat.codes  # Encode categorical variables as categories
 
-# Encode categorical variables (e.g., 'genre')
-df['genre'] = df['genre'].astype('category').cat.codes
+df['is_spoiler'] = df['is_spoiler'].astype(int) # Convert 'is_spoiler' to integer type
 
-# Convert 'is_spoiler' to int
-df['is_spoiler'] = df['is_spoiler'].astype(int)
+X = df.drop(columns=['is_spoiler', 'review_text', 'plot_summary', 
+                     'plot_synopsis', 'movie_id', 'review_date', 'release_date'])   # Drop the target and text columns
+y = df['is_spoiler']                                                                # Assign the target column to y
 
-# Define features and target variable
-X = df.drop(columns=['is_spoiler', 'review_text', 'plot_summary', 'plot_synopsis', 'movie_id', 'review_date', 'release_date'])
-y = df['is_spoiler']
-
-# Print counts of target classes
 print("Initial target class counts:")
 print(y.value_counts())
 
-# Vectorize the 'review_text' column
-tfidf_vectorizer = TfidfVectorizer(max_features=5000)
-X_text = tfidf_vectorizer.fit_transform(df['review_text'])
 
-# Scale numerical features
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X.select_dtypes(include=[np.number]))
+tfidf_vectorizer = TfidfVectorizer(max_features=5000)       # Initialize the TfidfVectorizer
+X_text = tfidf_vectorizer.fit_transform(df['review_text'])  # Fit and transform the text data
 
-# Combine numerical and text features
-X_combined = hstack([X_scaled, X_text])
+scaler = StandardScaler()                                               # Initialize the StandardScaler
+X_scaled = scaler.fit_transform(X.select_dtypes(include=[np.number]))   # Fit and transform the numerical data
 
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X_combined, y, test_size=0.2, random_state=42)
+X_combined = hstack([X_scaled, X_text]) # Combine the scaled numerical data and the TF-IDF matrix
 
-# Print counts of target classes in train and test sets
+X_train, X_test, y_train, y_test = train_test_split(X_combined, y, test_size=0.2, random_state=42) # Split the data
+
+
 print("Training set target class counts:")
 print(y_train.value_counts())
 print("Testing set target class counts:")
 print(y_test.value_counts())
 
-# Save splits
-joblib.dump(X_train, 'data/processed/v2/splits/base/X_train.pkl')
-joblib.dump(X_test, 'data/processed/v2/splits/base/X_test.pkl')
-joblib.dump(y_train, 'data/processed/v2/splits/base/y_train.pkl')
-joblib.dump(y_test, 'data/processed/v2/splits/base/y_test.pkl')
 
-# Save the vectorizer and scaler
-joblib.dump(tfidf_vectorizer, 'models/v2/prep/tfidf_vectorizer.pkl')
-joblib.dump(scaler, 'models/v2/prep/scaler.pkl')
+joblib.dump(X_train, 'data/processed/v2/splits/base/X_train.pkl')   # Save the training data
+joblib.dump(X_test, 'data/processed/v2/splits/base/X_test.pkl')     # Save the testing data
+joblib.dump(y_train, 'data/processed/v2/splits/base/y_train.pkl')   # Save the training labels
+joblib.dump(y_test, 'data/processed/v2/splits/base/y_test.pkl')     # Save the testing labels
+joblib.dump(tfidf_vectorizer, 'models/v2/prep/tfidf_vectorizer.pkl')    # Save the TF-IDF vectorizer
+joblib.dump(scaler, 'models/v2/prep/scaler.pkl')                        # Save the StandardScaler
 
-# SMOTE Upsampling
-nearest_neighbors = NearestNeighbors(n_jobs=-1)
-smote = SMOTE(random_state=42, k_neighbors=nearest_neighbors)
-X_train_smote, y_train_smote = smote.fit_resample(X_train, y_train)
 
-# Print counts of target classes after SMOTE
+nearest_neighbors = NearestNeighbors(n_jobs=-1)                     # Initialize the NearestNeighbors model
+smote = SMOTE(random_state=42, k_neighbors=nearest_neighbors)       # Initialize the SMOTE model with the NearestNeighbors
+X_train_smote, y_train_smote = smote.fit_resample(X_train, y_train) # Fit and transform the training data
+
+
 print("SMOTE-resampled training set target class counts:")
 print(pd.Series(y_train_smote).value_counts())
 
-# Save SMOTE splits
-joblib.dump(X_train_smote, 'data/processed/v2/splits/smote/X_train.pkl')
-joblib.dump(y_train_smote, 'data/processed/v2/splits/smote/y_train.pkl')
-joblib.dump(X_test, 'data/processed/v2/splits/smote/X_test.pkl')
-joblib.dump(y_test, 'data/processed/v2/splits/smote/y_test.pkl')
+joblib.dump(X_train_smote, 'data/processed/v2/splits/smote/X_train.pkl')    # Save the SMOTE-resampled training data
+joblib.dump(y_train_smote, 'data/processed/v2/splits/smote/y_train.pkl')    # Save the SMOTE-resampled training labels
+joblib.dump(X_test, 'data/processed/v2/splits/smote/X_test.pkl')            # Save the testing data
+joblib.dump(y_test, 'data/processed/v2/splits/smote/y_test.pkl')            # Save the testing labels
 
-X_train_smote = joblib.load('data/processed/v2/splits/smote/X_train.pkl')
-X_test = joblib.load('data/processed/v2/splits/smote/X_test.pkl')
-y_train_smote = joblib.load('data/processed/v2/splits/smote/y_train.pkl')
-y_test = joblib.load('data/processed/v2/splits/smote/y_test.pkl')
+# X_train_smote = joblib.load('data/processed/v2/splits/smote/X_train.pkl')   
+# X_test = joblib.load('data/processed/v2/splits/smote/X_test.pkl')
+# y_train_smote = joblib.load('data/processed/v2/splits/smote/y_train.pkl')
+# y_test = joblib.load('data/processed/v2/splits/smote/y_test.pkl')
 
-# PCA for Dimensionality Reduction using 95% explained variance heuristic
-initial_pca = IncrementalPCA(n_components=125, batch_size=1000)  # Fit with a batch size equal to the initial number of components
+initial_pca = IncrementalPCA(n_components=125, batch_size=1000)  # Initialize the IncrementalPCA model
 
-# Fit IncrementalPCA in chunks to avoid memory issues
-for i in range(0, X_train_smote.shape[0], 1000):
-    end = min(i + 1000, X_train_smote.shape[0])
-    initial_pca.partial_fit(X_train_smote[i:end].toarray())
+for i in range(0, X_train_smote.shape[0], 1000):            # Fit the PCA model in chunks to avoid memory issues
+    end = min(i + 1000, X_train_smote.shape[0])             # Determine the end index of the chunk
+    initial_pca.partial_fit(X_train_smote[i:end].toarray()) # Fit the PCA model on the chunk
 
-# Calculate cumulative explained variance ratio
-cumulative_variance_ratio = np.cumsum(initial_pca.explained_variance_ratio_)
-n_components_95 = np.argmax(cumulative_variance_ratio >= 0.95) + 1
+cumulative_variance_ratio = np.cumsum(initial_pca.explained_variance_ratio_)    # Calculate the cumulative variance ratio
+n_components_95 = np.argmax(cumulative_variance_ratio >= 0.95) + 1              # Determine the number of components for 95% variance
 
-# Fit IncrementalPCA with the determined number of components
-final_pca = IncrementalPCA(n_components=n_components_95, batch_size=1000)
-for i in range(0, X_train_smote.shape[0], 1000):
-    end = min(i + 1000, X_train_smote.shape[0])
-    final_pca.partial_fit(X_train_smote[i:end].toarray())
+final_pca = IncrementalPCA(n_components=n_components_95, batch_size=1000)   # Initialize the IncrementalPCA model with the determined number of components
+for i in range(0, X_train_smote.shape[0], 1000):                            # Fit the PCA model in chunks to avoid memory issues
+    end = min(i + 1000, X_train_smote.shape[0])                             # Determine the end index of the chunk
+    final_pca.partial_fit(X_train_smote[i:end].toarray())                   # Fit the PCA model on the chunk
 
-# Transform the training and test data using the fitted PCA in chunks to avoid memory issues
-X_train_smote_pca = csr_matrix((0, n_components_95))
-X_test_pca = csr_matrix((0, n_components_95))
+X_train_smote_pca = csr_matrix((0, n_components_95))    # Initialize an empty CSR matrix for the PCA-transformed training data
+X_test_pca = csr_matrix((0, n_components_95))           # Initialize an empty CSR matrix for the PCA-transformed testing data
 
-for i in range(0, X_train_smote.shape[0], 1000):
-    end = min(i + 1000, X_train_smote.shape[0])
-    X_train_smote_pca = vstack([X_train_smote_pca, final_pca.transform(X_train_smote[i:end].toarray())])
+# Transform the training data
+for i in range(0, X_train_smote.shape[0], 1000):    # Transform the training data in chunks to avoid memory issues
+    end = min(i + 1000, X_train_smote.shape[0])     # Determine the end index of the chunk
+    X_train_smote_pca = vstack([X_train_smote_pca, final_pca.transform(X_train_smote[i:end].toarray())])    # Transform and stack the chunk
 
-for i in range(0, X_test.shape[0], 1000):
-    end = min(i + 1000, X_test.shape[0])
-    X_test_pca = vstack([X_test_pca, final_pca.transform(X_test[i:end].toarray())])
+# Transform the testing data
+for i in range(0, X_test.shape[0], 1000):           # Transform the testing data in chunks to avoid memory issues
+    end = min(i + 1000, X_test.shape[0])            # Determine the end index of the chunk
+    X_test_pca = vstack([X_test_pca, final_pca.transform(X_test[i:end].toarray())])   # Transform and stack the chunk
 
 
-# Save PCA splits
-joblib.dump(X_train_smote_pca, 'data/processed/v2/splits/smote_pca/X_train.pkl')
-joblib.dump(X_test_pca, 'data/processed/v2/splits/smote_pca/X_test.pkl')
-joblib.dump(y_train_smote, 'data/processed/v2/splits/smote_pca/y_train.pkl')
-joblib.dump(y_test, 'data/processed/v2/splits/smote_pca/y_test.pkl')
-
-# Save PCA model
-joblib.dump(final_pca, 'models/v2/prep/pca.pkl')
+joblib.dump(X_train_smote_pca, 'data/processed/v2/splits/smote_pca/X_train.pkl')    # Save the PCA-transformed training data
+joblib.dump(X_test_pca, 'data/processed/v2/splits/smote_pca/X_test.pkl')            # Save the PCA-transformed testing data
+joblib.dump(y_train_smote, 'data/processed/v2/splits/smote_pca/y_train.pkl')        # Save the SMOTE-resampled training labels
+joblib.dump(y_test, 'data/processed/v2/splits/smote_pca/y_test.pkl')                # Save the testing labels
+joblib.dump(final_pca, 'models/v2/prep/pca.pkl')                                    # Save the PCA model

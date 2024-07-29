@@ -6,10 +6,10 @@ from xgboost import XGBClassifier
 from sklearn.metrics import classification_report
 
 # Load the data splits
-X_train = joblib.load('data/processed/v2/splits/base/X_train.pkl')
-X_test = joblib.load('data/processed/v2/splits/base/X_test.pkl')
-y_train = joblib.load('data/processed/v2/splits/base/y_train.pkl')
-y_test = joblib.load('data/processed/v2/splits/base/y_test.pkl')
+X_train = joblib.load('data/processed/v2/splits/base/X_train.pkl')  # Load the training data
+X_test = joblib.load('data/processed/v2/splits/base/X_test.pkl')    # Load the test data
+y_train = joblib.load('data/processed/v2/splits/base/y_train.pkl')  # Load the training labels
+y_test = joblib.load('data/processed/v2/splits/base/y_test.pkl')    # Load the test labels
 
 # Take a subset of the training data for tuning
 X_train_subset, _, y_train_subset, _ = train_test_split(X_train, y_train, test_size=0.9, random_state=42, stratify=y_train)
@@ -25,11 +25,9 @@ param_grid = {
     'random_state': [42]
 }
 
-# Initialize XGBoost classifier
-xgb = XGBClassifier(eval_metric='logloss')
 
-# Setup Stratified K-Folds cross-validator
-cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+xgb = XGBClassifier(eval_metric='logloss')                      # Initialize XGBoost classifier
+cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42) # Initialize Stratified K-Fold cross-validator
 
 # ----------------------------------------------------
 # Initialize GridSearchCV
@@ -61,27 +59,23 @@ cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
 # Initialize HalvingGridSearchCV
 halving_search = HalvingGridSearchCV(estimator=xgb, param_grid=param_grid, scoring='accuracy', cv=cv, n_jobs=-1, verbose=2, factor=3, min_resources='exhaust', aggressive_elimination=False)
 
-# Perform the halving grid search
 print("Starting Halving Grid Search for XGBoost on subset...")
-halving_search.fit(X_train_subset, y_train_subset)
+halving_search.fit(X_train_subset, y_train_subset)      # Fit the Halving Grid Search on the subset
 
-# Get the best parameters
-best_params = halving_search.best_params_
 print("Best Parameters for XGBoost found on subset:")
+best_params = halving_search.best_params_               # Get the best parameters
 print(best_params)
 
-# Train the best model on the full training data
-best_xgb_full = XGBClassifier(**best_params, eval_metric='error')
+best_xgb_full = XGBClassifier(**best_params, eval_metric='error')   # Initialize XGBoost with best parameters
 
 print("Training XGBoost with best parameters on full dataset...")
-best_xgb_full.fit(X_train, y_train)
+best_xgb_full.fit(X_train, y_train)                                 # Train the best XGBoost model on full dataset     
 
-# Evaluate the best model
-y_pred = best_xgb_full.predict(X_test)
-report = classification_report(y_test, y_pred, output_dict=True)
+y_pred = best_xgb_full.predict(X_test)                              # Predict the test labels
+report = classification_report(y_test, y_pred, output_dict=True)    # Get the classification report
+
 print('Best XGBoost Model Classification Report:')
 print(report)
 
-# Save the best model
-joblib.dump(best_xgb_full, 'models/v2/base/xgboost_tuned_model.pkl')
+joblib.dump(best_xgb_full, 'models/v2/base/xgboost_tuned_model.pkl')    # Save the best XGBoost model trained on full dataset
 print('Saved the best XGBoost model trained on full dataset.')
