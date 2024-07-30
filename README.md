@@ -71,11 +71,15 @@ Performs feature engineering:
 - Extracting TF-IDF features and reducing dimensionality with SVD
 - Saving engineered datasets to Parquet files
 
-### `model_evaluation.py`
+### `feature_engineering_splits.py`
 
-Evaluates the performance of the models using various metrics.
+Prepares and splits the data:
+- Loads and preprocesses data
+- Handles missing values, encodes variables, and scales features
+- Applies SMOTE for upsampling and PCA for dimensionality reduction
+- Saves data splits and transformation models
 
-### `model_training_base.py`, `model_training_smote.py`, `model_training_smote_pca.py`
+### `model_training_base.py`
 
 Train and evaluate various machine learning models on different processed datasets:
 - Logistic Regression
@@ -108,14 +112,6 @@ Trains a Feedforward Neural Network (FF):
 Trains an LSTM Neural Network:
 - Similar to `model_training_FF.py` but focuses on LSTM
 
-### `model_training_splits.py`
-
-Prepares and splits the data:
-- Loads and preprocesses data
-- Handles missing values, encodes variables, and scales features
-- Applies SMOTE for upsampling and PCA for dimensionality reduction
-- Saves data splits and transformation models
-
 ### `model_tuning_lightgbm.py`
 
 Tunes hyperparameters for the LightGBM model:
@@ -129,6 +125,10 @@ Tunes hyperparameters for the LightGBM model:
 
 Tunes hyperparameters for the XGBoost model:
 - Similar to `model_tuning_lightgbm.py` but focuses on XGBoost
+
+### `model_evaluation.py`
+
+Evaluates the performance of the models using various metrics.
 
 ### `ml_utils.py`
 
