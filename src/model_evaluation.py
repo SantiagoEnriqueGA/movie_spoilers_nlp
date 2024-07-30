@@ -29,30 +29,6 @@ model_paths = {
     'smote_pca': 'models/v2/smote_pca/'
 }
 
-# # Define a function to load and evaluate models with a timeout
-# def evaluate_model(model_path, X_test, y_test, time_limit=300):
-#     print(f"Evaluating model: {model_path}")
-#     model = joblib.load(model_path)
-#     y_pred = []
-
-#     def predict():
-#         nonlocal y_pred
-#         y_pred = model.predict(X_test)
-
-#     thread = threading.Thread(target=predict)
-#     start_time = time.time()
-#     thread.start()
-#     thread.join(timeout=time_limit)
-#     end_time = time.time()
-
-#     if thread.is_alive():
-#         print(f"Model {model_path} took too long to evaluate. Skipping...")
-#         return None
-
-#     report = classification_report(y_test, y_pred, output_dict=True)
-#     report['eval_time'] = end_time - start_time
-#     return report
-
 def evaluate_model(model_path, X_test, y_test):
     """
     Evaluates a machine learning model using the provided test data.
@@ -106,7 +82,7 @@ for key, path in model_paths.items():           # Iterate over the model paths
     print(f"\nProcessing models in: {path}")    
 
     for model_file in os.listdir(path):         # Iterate over the files in the model path
-        if model_file.endswith('.pkl'):         # Check if the file is a pickle file
+        if model_file.endswith('tuned_model.pkl'):         # Check if the file is a pickle file
             model_name = f"{key}_{model_file.split('_model.pkl')[0]}"   # Extract the model name
             
             # Evaluate the model based on the data type
@@ -147,10 +123,14 @@ model_lstm = ConfigurableLSTM(X_train.shape[1], hidden_dim, num_layers, dropout_
 save_dir = 'models/v2/base/pytorch_lstm_best_model.pth' # Load the saved model
 model_lstm.load_state_dict(torch.load(save_dir))        # Load the model
 
+start_time = time.time()        # Start the timer
 clas_report = get_classification_report(model_lstm, test_loader, device)    # Get the classification report
+end_time = time.time()          # Stop the timer
 
 lstm_report_flat = flatten_report(clas_report, 'base_pytorch_lstm_best')    # Flatten the LSTM classification report
+lstm_report_flat['eval_time'] = end_time - start_time                         # Add the evaluation time to the report
 reports.append(lstm_report_flat)                                            # Add the LSTM report to the reports list
+
 
 
 # Evaluate the FF neural network model
@@ -175,9 +155,12 @@ model_ff = ConfigurableNN(X_train.shape[1], hidden_dims, dropout_rate).to(device
 save_dir ='models/v2/base/pytorch_ff_best_model.pth'    # Load the saved model
 model_ff.load_state_dict(torch.load(save_dir))          # Load the model
 
+start_time = time.time()        # Start the timer
 clas_report = get_classification_report(model_ff, test_loader, device)  # Get the classification report
+end_time = time.time()          # Stop the timer
 
 ff_report_flat = flatten_report(clas_report, 'base_pytorch_ff_best')    # Flatten the FF classification report
+ff_report_flat['eval_time'] = end_time - start_time                         # Add the evaluation time to the report
 reports.append(ff_report_flat)                                          # Add the FF report to the reports list
 
 

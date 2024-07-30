@@ -387,8 +387,7 @@ def train_optuna(nn_type, X_train, y_train, X_val, y_val, input_dim, device, n_t
             criterion = nn.BCEWithLogitsLoss()                                                      # Loss function
             optimizer = optim.Adam(model.parameters(), lr=lr)                                       # Optimizer
             scheduler = ReduceLROnPlateau(optimizer, 'min', patience=patience//2)                   # Learning rate scheduler
-            writer = SummaryWriter(log_dir=f'runs/optuna_trial_lstm/trial_{trial.number}_
-                                   {datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')            # TensorBoard writer
+            writer = SummaryWriter(log_dir=f'runs/optuna_trial_lstm/trial_{trial.number}_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')            # TensorBoard writer
             
             early_stopping = EarlyStopping(patience=patience)   # Early stopping object
             scaler = GradScaler()                               # GradScaler for mixed precision
@@ -412,8 +411,7 @@ def train_optuna(nn_type, X_train, y_train, X_val, y_val, input_dim, device, n_t
             criterion = nn.BCEWithLogitsLoss()                                              # Loss function
             optimizer = optim.Adam(model.parameters(), lr=lr)                               # Optimizer
             scheduler = ReduceLROnPlateau(optimizer, 'min', patience=patience//2)           # Learning rate scheduler
-            writer = SummaryWriter(log_dir=f'runs/optuna_trial_ff/trial_{trial.number}_
-                                   {datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')    # TensorBoard writer
+            writer = SummaryWriter(log_dir=f'runs/optuna_trial_ff/trial_{trial.number}_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')    # TensorBoard writer
             
             early_stopping = EarlyStopping(patience=patience)   # Early stopping object
             scaler = GradScaler()                               # GradScaler for mixed precision
