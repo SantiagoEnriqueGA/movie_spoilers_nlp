@@ -14,34 +14,111 @@ This project aims to detect spoilers in user-generated movie reviews. Using a da
 - **Items with at Least One Spoiler Review**: 1,570
 
 ## Results
-TODO
-## Future Work
-TODO
+### Top 10 Models by Accuracy
+|model                        |accuracy|0_precision|0_f1-score|1_precision|1_f1-score|weighted avg_precision|weighted avg_f1-score|eval_time  |
+|-----------------------------|--------|-----------|----------|-----------|----------|----------------------|---------------------|-----------|
+|base_pytorch_lstm_best       | 0.7934 | 0.8170    | 0.8683   | 0.6746    | 0.5205   | 0.7793               | 0.7762              |25.18037391|
+|base_lightgbm_tuned          | 0.7928 | 0.8082    | 0.8699   | 0.7008    | 0.4922   | 0.7798               | 0.7699              |0.438542843|
+|base_pytorch_ff_best         | 0.7906 | 0.8190    | 0.8657   | 0.6573    | 0.5245   | 0.7762               | 0.7754              |19.89654732|
+|base_lightgbm                | 0.7884 | 0.8036    | 0.8675   | 0.6928    | 0.4740   | 0.7743               | 0.7634              |0.111460686|
+|base_xgboost                 | 0.7882 | 0.8060    | 0.8669   | 0.6830    | 0.4824   | 0.7734               | 0.7651              |0.119859934|
+|smote_xgboost                | 0.7820 | 0.8050    | 0.8623   | 0.6537    | 0.4767   | 0.7649               | 0.7602              |0.140076637|
+|base_linear_svc              | 0.7817 | 0.7988    | 0.8636   | 0.6719    | 0.4535   | 0.7652               | 0.7550              |0.056011677|
+|base_logistic_regression     | 0.7815 | 0.8030    | 0.8625   | 0.6572    | 0.4696   | 0.7644               | 0.7585              |0.057740688|
+|smote_lightgbm               | 0.7802 | 0.8072    | 0.8604   | 0.6395    | 0.4836   | 0.7628               | 0.7606              |22.3690455 |
+|base_gradient_boosting       | 0.7794 | 0.7894    | 0.8642   | 0.6986    | 0.4127   | 0.7654               | 0.7447              |0.46252656 |
+
+### Best Models by Metric
+|Metric                |Best Performing Model    |
+|----------------------|-------------------------|
+|0_precision           |smote_k-nearest_neighbors|
+|0_recall              |base_random_forest       |
+|0_f1-score            |base_lightgbm_tuned      |
+|0_support             |base_adaboost            |
+|1_precision           |base_random_forest       |
+|1_recall              |smote_k-nearest_neighbors|
+|1_f1-score            |smote_logistic_regression|
+|1_support             |base_adaboost            |
+|accuracy              |base_pytorch_lstm_best   |
+|macro avg_precision   |base_xgboost_tuned       |
+|macro avg_recall      |smote_logistic_regression|
+|macro avg_f1-score    |base_pytorch_ff_best     |
+|macro avg_support     |base_adaboost            |
+|weighted avg_precision|base_lightgbm_tuned      |
+|weighted avg_recall   |base_pytorch_lstm_best   |
+|weighted avg_f1-score |base_pytorch_lstm_best   |
+|weighted avg_support  |base_adaboost            |
+|eval_time             |smote_logistic_regression|
+
+## Class Metrics 
+
+<div style="display: flex; flex-direction: row; justify-content: space-between;">
+    <img src="https://github.com/SantiagoEnriqueGA/movie_spoilers_nlp/blob/main/plots/group/class_0_metrics.png" alt="Class 0 Metrics" style="width: 45%;"/>
+    <img src="https://github.com/SantiagoEnriqueGA/movie_spoilers_nlp/blob/main/plots/group/class_1_metrics.png" alt="Class 1 Metrics" style="width: 45%;"/>
+</div>
+
+
+### Choices Faced When Selecting the Best Model
+
+1. **Balancing Precision and Recall**:
+    - **Precision** measures how many selected items are relevant, while **recall** measures how many relevant items are selected.
+    - A model with high precision but low recall (e.g., base_pytorch_lstm_best) might be good for applications where false positives are costly.
+    - Conversely, a model with high recall but lower precision (e.g., smote_k-nearest_neighbors) might be suitable where missing a spoiler (false negative) is more detrimental.
+
+2. **Considering Model Complexity and Training Time**:
+    - Neural networks like `base_pytorch_lstm_best` and `base_pytorch_ff_best` show good performance but at the cost of higher training and evaluation times.
+    - Models like `base_lightgbm_tuned` and `base_xgboost` offer a balance between performance and efficiency, making them attractive choices for practical deployment.
+
+3. **Weighted Metrics**:
+    - Weighted metrics consider the support of each class, providing a more balanced view of the model's performance across all data points.
+    - For instance, `base_lightgbm_tuned` and `base_pytorch_lstm_best` score high on weighted average metrics, indicating robust overall performance.
+
+4. **Hyperparameter Tuning**:
+    - Tuned models (`base_lightgbm_tuned`, `base_xgboost_tuned`) often perform better than their untuned counterparts.
+    - Investing time in hyperparameter optimization can yield significant performance gains.
+
+5. **Evaluation Time**:
+    - For real-time or near-real-time applications, models with lower evaluation times (e.g., `base_linear_svc`, `base_logistic_regression`) might be preferred despite slightly lower accuracy or F1-scores.
+    - `smote_logistic_regression` has the best evaluation time, which might be crucial for high-throughput systems.
+
+7. **Use Case Specific Metrics**:
+    - Depending on the end-use case, certain metrics might be prioritized over others. For instance, if avoiding spoilers at any cost is critical, models with higher `1_recall` or `1_f1-score` would be prioritized, despite the increased probability of false positives.
+
+### Conclusion
+
+Selecting the best model for the Movie Spoiler Detector project involves balancing multiple performance metrics, considering model complexity, and evaluating practical constraints like training and evaluation times. The choice ultimately depends on the specific requirements of the deployment environment and the relative importance of precision, recall, and overall efficiency.
+
 
 ## Models
 
 ### Machine Learning Models
 
-- `adaboost_model`
-- `decision_tree_model`
-- `gradient_boosting_model`
-- `k-nearest_neighbors_model`
-- `lightgbm_model`
-- `linear_svc_model`
-- `logistic_regression_model`
-- `random_forest_model`
-- `sgd_classifier_model`
-- `xgboost_model`
+| Model                  | Description                                                                                        |
+|------------------------|----------------------------------------------------------------------------------------------------|
+| `adaboost_model`       | Combines multiple weak classifiers to form a strong classifier by adjusting weights on errors.     |
+| `decision_tree_model`  | Splits data into subsets based on feature values, forming an intuitive, interpretable tree.         |
+| `gradient_boosting_model` | Sequentially builds models to correct errors, optimizing for the loss function using gradient descent. |
+| `k-nearest_neighbors_model` | Classifies instances based on the majority class among nearest neighbors in feature space.       |
+| `lightgbm_model`       | Efficient gradient boosting framework for large datasets and high-dimensional data.                |
+| `linear_svc_model`     | Linear Support Vector Classifier effective in high-dimensional spaces, suitable for text classification. |
+| `logistic_regression_model` | Models binary outcomes using the logistic function, simple and interpretable.                     |
+| `random_forest_model`  | Ensemble method building multiple decision trees, reducing overfitting and handling large datasets.  |
+| `sgd_classifier_model` | Uses stochastic gradient descent to minimize loss, suitable for large-scale learning problems.     |
+| `xgboost_model`        | Optimized gradient boosting library, efficient and effective for structured/tabular data.          |
 
 ### Best Performing Models (Tuned)
 
-- `lightgbm_model_tuned`
-- `xgboost_model_tuned`
+| Model                  | Description                                                                                        |
+|------------------------|----------------------------------------------------------------------------------------------------|
+| `lightgbm_model_tuned` | LightGBM model with optimized hyperparameters for improved speed and accuracy.                     |
+| `xgboost_model_tuned`  | XGBoost model with tuned hyperparameters for maximum performance and efficiency.                   |
 
 ### Neural Network Models
 
-- `pytorch_FF_model` (Feedforward Neural Network)
-- `pytorch_lstm_model` (LSTM Neural Network)
+| Model                  | Description                                                                                        |
+|------------------------|----------------------------------------------------------------------------------------------------|
+| `pytorch_FF_model`     | Feedforward neural network trained using backpropagation, used for various tasks.                  |
+| `pytorch_lstm_model`   | LSTM neural network effective for sequence prediction, learning long-term dependencies.            |
 
 ## Files Description
 
