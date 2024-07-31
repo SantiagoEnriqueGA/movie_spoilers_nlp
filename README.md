@@ -120,8 +120,39 @@ Selecting the best model for the Movie Spoiler Detector project involves balanci
 | `pytorch_FF_model`     | Feedforward neural network trained using backpropagation, used for various tasks.                  |
 | `pytorch_lstm_model`   | LSTM neural network effective for sequence prediction, learning long-term dependencies.            |
 
-## Files Description
 
+## Feature Engineering
+
+### Text-Based Features
+1. **Word Count**: The total number of words in each review.
+2. **Average Word Length**: The average length of words in each review.
+3. **Number of Sentences**: The total number of sentences in each review.
+4. **Sentiment Score**: The compound sentiment score calculated using the VADER SentimentIntensityAnalyzer.
+5. **Keyword Flags**: Binary flags indicating the presence of specific keywords (e.g., "romance", "action", "comedy") in the review text.
+
+### Date-Based Features
+1. **Review Year**: The year when the review was written.
+2. **Review Month**: The month when the review was written.
+3. **Review Day**: The day when the review was written.
+4. **Review Day of Week**: The day of the week when the review was written.
+5. **Review Time**: The time of the day when the review was written.
+
+### Movie Details Features
+1. **Movie Duration**: The duration of the movie, converted to minutes.
+2. **Movie Genres**: The genres of the movie, encoded as binary features.
+
+### Statistical Features
+1. **Average Rating of Movie**: The average rating of the movie.
+2. **Review Length**: The length of the review text.
+
+### TF-IDF Features
+1. **TF-IDF Vectors**: Term frequency-inverse document frequency vectors representing the review text.
+2. **Dimensionality Reduction**: Applying Truncated Singular Value Decomposition (SVD) to reduce the dimensionality of the TF-IDF vectors.
+
+
+
+
+## Files Description
 ### `eda.py`
 
 Performs exploratory data analysis (EDA) on the dataset:
