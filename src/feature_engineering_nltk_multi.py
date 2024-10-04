@@ -5,16 +5,19 @@ from nltk import sent_tokenize
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
+from sklearn.metrics.pairwise import cosine_similarity
 import nltk
 import multiprocessing as mp
 from datetime import datetime
 import time 
+from sklearn.metrics.pairwise import cosine_similarity
+from joblib import Parallel, delayed
 
 # nltk.download('punkt')
 # nltk.download('vader_lexicon')
 # nltk.download('averaged_perceptron_tagger')
 # nltk.download('maxent_ne_chunker')
-# nltk.download('words')
+# nltk.download('words') 
 
 def process_text_features(args):
     """
@@ -92,9 +95,14 @@ if __name__ == "__main__":
 
     sid = SentimentIntensityAnalyzer() # Initialize the SentimentIntensityAnalyzer
 
-    keywords = ['romance', 'action', 'comedy', 'thriller', 'drama', 
-                'horror', 'sci-fi', 'fantasy', 'romantic', 'violence'] # Define keywords to check for
-
+    # Spoiler-related keywords
+    keywords = [
+        'spoiler', 'reveals', 'plot twist', 'ending', 'dies', 'death', 'killer', 
+        'murderer', 'secret', 'betrayal', 'identity', 'truth', 'hidden', 'unveiled',
+        'climax', 'finale', 'conclusion', 'resolution', 'twist', 'surprise', 
+        'unexpected', 'shock', 'disclosure', 'unmask', 'revelation', 'expose', 
+        'uncover', 'spoils', 'giveaway', 'leak', 'spoiling', 'foretell', 'foreshadow'
+    ]
     args = [(review_text, sid, keywords) for review_text in reviews_df['review_text']] # Create a list of arguments for parallel processing
 
     with mp.Pool(processes=mp.cpu_count()) as pool:     # Use all available CPU cores
@@ -137,27 +145,69 @@ if __name__ == "__main__":
     final_df = pd.merge(merged_df, rating_stats, on='movie_id', how='left') # Merge rating_stats with merged_df on 'movie_id'
     
     
-    print('TF-IDF Features')
-    # 5. TF-IDF Features
+    print('Cosine Similarity Features')
+    # 5. Cosine Similarity Features
     # ------------------------------------------------------------------------------------------------------------
-    tfidf = TfidfVectorizer(max_features=1000)                                              # Initialize the TfidfVectorizer
+    def compute_cosine_similarity(tfidf_matrix1, tfidf_matrix2):
+        return cosine_similarity(tfidf_matrix1, tfidf_matrix2).diagonal()
+    
+    # Initialize TfidfVectorizer
+    tfidf_vectorizer = TfidfVectorizer()
+    
+    # Combine review_text and plot_summary for fitting the vectorizer
+    combined_text = final_df['review_text'].fillna('').tolist() + final_df['plot_summary'].fillna('').tolist()
+    
+    # Fit the vectorizer on the combined text
+    tfidf_vectorizer.fit(combined_text)
+    
+    # Transform review_text and plot_summary separately
+    tfidf_review_text = tfidf_vectorizer.transform(final_df['review_text'].fillna(''))
+    tfidf_plot_summary = tfidf_vectorizer.transform(final_df['plot_summary'].fillna(''))
+    
+    # Compute cosine similarity between review_text and plot_summary using parallel processing
+    cosine_sim_review_plot = Parallel(n_jobs=-1)(delayed(compute_cosine_similarity)(tfidf_review_text[i], tfidf_plot_summary[i]) for i in range(tfidf_review_text.shape[0]))
+    
+    # Add cosine similarity to final_df
+    final_df['cosine_sim_review_plot'] = cosine_sim_review_plot
+    
+    # Combine review_summary and plot_synopsis for fitting the vectorizer
+    combined_summary = final_df['review_summary'].fillna('').tolist() + final_df['plot_synopsis'].fillna('').tolist()
+    
+    # Fit the vectorizer on the combined summary
+    tfidf_vectorizer.fit(combined_summary)
+    
+    # Transform review_summary and plot_synopsis separately
+    tfidf_review_summary = tfidf_vectorizer.transform(final_df['review_summary'].fillna(''))
+    tfidf_plot_synopsis = tfidf_vectorizer.transform(final_df['plot_synopsis'].fillna(''))
+    
+    # Compute cosine similarity between review_summary and plot_synopsis using parallel processing
+    cosine_sim_summary_synopsis = Parallel(n_jobs=-1)(delayed(compute_cosine_similarity)(tfidf_review_summary[i], tfidf_plot_synopsis[i]) for i in range(tfidf_review_summary.shape[0]))
+    
+    # Add cosine similarity to final_df
+    final_df['cosine_sim_summary_synopsis'] = cosine_sim_summary_synopsis
+    
+    
+    print('TF-IDF Features')
+    # 6. TF-IDF Features
+    # ------------------------------------------------------------------------------------------------------------
+    tfidf = TfidfVectorizer()                                                               # Initialize the TfidfVectorizer
     tfidf_matrix = tfidf.fit_transform(final_df['review_text'])                             # Fit and transform the text data
     tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=tfidf.get_feature_names_out())  # Create a DataFrame from the matrix
     # final_df = pd.concat([final_df, tfidf_df], axis=1)
 
-    svd = TruncatedSVD(n_components=100)                                        # Initialize the TruncatedSVD
-    svd_matrix = svd.fit_transform(tfidf_matrix)                                # Fit and transform the TF-IDF matrix
-    svd_df = pd.DataFrame(svd_matrix, columns=[f'svd_{i}' for i in range(100)]) # Create a DataFrame from the matrix
-    final_df = pd.concat([final_df, svd_df], axis=1)                            # Concatenate the SVD features to the final DataFrame
-    
+    svd = TruncatedSVD(n_components=100)                                            # Initialize the TruncatedSVD
+    svd_matrix = svd.fit_transform(tfidf_matrix)                                    # Fit and transform the TF-IDF matrix
+    svd_df = pd.DataFrame(svd_matrix, columns=[f'svd_{i}' for i in range(100)])     # Create a DataFrame from the matrix
+    final_df = pd.concat([final_df, svd_df], axis=1)                                # Concatenate the SVD features to the final DataFrame
+
 
     print('Saving')
     # Save the engineered datasets
     # ------------------------------------------------------------------------------------------------------------
-    reviews_df.to_parquet('data/processed/v2/reviews_engineered.parquet', index=False)  # Save reviews_df
-    movies_df.to_parquet('data/processed/v2/movies_engineered.parquet', index=False)    # Save movies_df
-    merged_df.to_parquet('data/processed/v2/merged.parquet', index=False)               # Save merged_df
-    final_df.to_parquet('data/processed/v2/final_engineered.parquet', index=False)      # Save final_df
+    # reviews_df.to_parquet('data/processed/v3/reviews_engineered.parquet', index=False)  # Save reviews_df
+    # movies_df.to_parquet('data/processed/v3/movies_engineered.parquet', index=False)    # Save movies_df
+    # merged_df.to_parquet('data/processed/v3/merged.parquet', index=False)               # Save merged_df
+    final_df.to_parquet('data/processed/v3/final_engineered.parquet', index=False)      # Save final_df
 
     # # Load Parquet files back into Pandas DataFrames
     # reviews_df = pd.read_parquet('data/processed/reviews_engineered.parquet')
