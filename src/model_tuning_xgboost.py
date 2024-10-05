@@ -6,10 +6,10 @@ from xgboost import XGBClassifier
 from sklearn.metrics import classification_report
 
 # Load the data splits
-X_train = joblib.load('data/processed/v2/splits/base/X_train.pkl')  # Load the training data
-X_test = joblib.load('data/processed/v2/splits/base/X_test.pkl')    # Load the test data
-y_train = joblib.load('data/processed/v2/splits/base/y_train.pkl')  # Load the training labels
-y_test = joblib.load('data/processed/v2/splits/base/y_test.pkl')    # Load the test labels
+X_train = joblib.load('data/processed/v3/splits/base/X_train.pkl')  # Load the training data
+X_test = joblib.load('data/processed/v3/splits/base/X_test.pkl')    # Load the test data
+y_train = joblib.load('data/processed/v3/splits/base/y_train.pkl')  # Load the training labels
+y_test = joblib.load('data/processed/v3/splits/base/y_test.pkl')    # Load the test labels
 
 # Take a subset of the training data for tuning
 X_train_subset, _, y_train_subset, _ = train_test_split(X_train, y_train, test_size=0.9, random_state=42, stratify=y_train)
@@ -77,5 +77,5 @@ report = classification_report(y_test, y_pred, output_dict=True)    # Get the cl
 print('Best XGBoost Model Classification Report:')
 print(report)
 
-joblib.dump(best_xgb_full, 'models/v2/base/xgboost_tuned_model.pkl')    # Save the best XGBoost model trained on full dataset
+joblib.dump(best_xgb_full, 'models/v3/base/xgboost_tuned_model.pkl')    # Save the best XGBoost model trained on full dataset
 print('Saved the best XGBoost model trained on full dataset.')

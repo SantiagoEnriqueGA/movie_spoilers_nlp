@@ -6,13 +6,13 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 import datetime
-from src.ml_utils import SequenceDataset, ConfigurableLSTM, train, evaluate, train_optuna, get_classification_report
+from ml_utils import SequenceDataset, ConfigurableLSTM, train, evaluate, train_optuna, get_classification_report
 
 # Load the data splits
-X_train = joblib.load('data/processed/v2/splits/base/X_train.pkl')  # Load the training data
-X_test = joblib.load('data/processed/v2/splits/base/X_test.pkl')    # Load the test data
-y_train = joblib.load('data/processed/v2/splits/base/y_train.pkl')  # Load the training labels
-y_test = joblib.load('data/processed/v2/splits/base/y_test.pkl')    # Load the test labels
+X_train = joblib.load('data/processed/v3/splits/base/X_train.pkl')  # Load the training data
+X_test = joblib.load('data/processed/v3/splits/base/X_test.pkl')    # Load the test data
+y_train = joblib.load('data/processed/v3/splits/base/y_train.pkl')  # Load the training labels
+y_test = joblib.load('data/processed/v3/splits/base/y_test.pkl')    # Load the test labels
 
 # Take a sample of the data for testing
 # sample_size = 10000 
@@ -43,9 +43,8 @@ model = ConfigurableLSTM(X_train.shape[1], hidden_dim, num_layers, dropout_rate)
 criterion = nn.BCEWithLogitsLoss()                                                          # Initialize the loss function
 optimizer = optim.Adam(model.parameters(), lr=lr)                                           # Initialize the optimizer
 scheduler = ReduceLROnPlateau(optimizer, 'min', patience=patience//2)                       # Initialize the scheduler
-writer = SummaryWriter(log_dir=f'runs/optuna/lstm_best_trial_
-                       {datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')                # Initialize the TensorBoard writer
-save_dir ='models/v2/base/pytorch_lstm_best_model.pth'                                      # Set the save directory
+writer = SummaryWriter(log_dir=f'runs/optuna/lstm_best_trial_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')                # Initialize the TensorBoard writer
+save_dir ='models/v3/base/pytorch_lstm_best_model.pth'                                      # Set the save directory
 
 # Train the model with the best hyperparameters
 train(model, train_loader, test_loader, criterion, optimizer, scheduler, writer, device, save_dir, patience=patience, epochs=1000)

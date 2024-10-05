@@ -13,20 +13,20 @@ warnings.filterwarnings("ignore")
 
 # Load the datasets
 print("Loading datasets...")
-X_test_base = joblib.load('data/processed/v2/splits/base/X_test.pkl')   
-y_test_base = joblib.load('data/processed/v2/splits/base/y_test.pkl')
+X_test_base = joblib.load('data/processed/v3/splits/base/X_test.pkl')   
+y_test_base = joblib.load('data/processed/v3/splits/base/y_test.pkl')
 
-X_test_smote = joblib.load('data/processed/v2/splits/smote/X_test.pkl')
-y_test_smote = joblib.load('data/processed/v2/splits/smote/y_test.pkl')
+X_test_smote = joblib.load('data/processed/v3/splits/smote/X_test.pkl')
+y_test_smote = joblib.load('data/processed/v3/splits/smote/y_test.pkl')
 
-X_test_smote_pca = joblib.load('data/processed/v2/splits/smote_pca/X_test.pkl')
-y_test_smote_pca = joblib.load('data/processed/v2/splits/smote_pca/y_test.pkl')
+X_test_smote_pca = joblib.load('data/processed/v3/splits/smote_pca/X_test.pkl')
+y_test_smote_pca = joblib.load('data/processed/v3/splits/smote_pca/y_test.pkl')
 
 # Define model paths
 model_paths = {
-    'base': 'models/v2/base/',
-    'smote': 'models/v2/smote/',
-    'smote_pca': 'models/v2/smote_pca/'
+    'base': 'models/v3/base/',
+    'smote': 'models/v3/smote/',
+    'smote_pca': 'models/v3/smote_pca/'
 }
 
 def evaluate_model(model_path, X_test, y_test):
@@ -94,10 +94,10 @@ for key, path in model_paths.items():           # Iterate over the model paths
 
 # Evaluate the PyTorch neural network models 
 # ---------------------------------------------------------------------------
-X_train = joblib.load('data/processed/v2/splits/base/X_train.pkl')  # Load the training data
-X_test = joblib.load('data/processed/v2/splits/base/X_test.pkl')    # Load the test data
-y_train = joblib.load('data/processed/v2/splits/base/y_train.pkl')  # Load the training labels
-y_test = joblib.load('data/processed/v2/splits/base/y_test.pkl')    # Load the test labels
+X_train = joblib.load('data/processed/v3/splits/base/X_train.pkl')  # Load the training data
+X_test = joblib.load('data/processed/v3/splits/base/X_test.pkl')    # Load the test data
+y_train = joblib.load('data/processed/v3/splits/base/y_train.pkl')  # Load the training labels
+y_test = joblib.load('data/processed/v3/splits/base/y_test.pkl')    # Load the test labels
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")   # Set the device to GPU if available
 
@@ -120,7 +120,7 @@ test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)    
 
 model_lstm = ConfigurableLSTM(X_train.shape[1], hidden_dim, num_layers, dropout_rate).to(device)    # Initialize the model
 
-save_dir = 'models/v2/base/pytorch_lstm_best_model.pth' # Load the saved model
+save_dir = 'models/v3/base/pytorch_lstm_best_model.pth' # Load the saved model
 model_lstm.load_state_dict(torch.load(save_dir))        # Load the model
 
 start_time = time.time()        # Start the timer
@@ -152,7 +152,7 @@ test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)    
 
 model_ff = ConfigurableNN(X_train.shape[1], hidden_dims, dropout_rate).to(device)   # Initialize the model
 
-save_dir ='models/v2/base/pytorch_ff_best_model.pth'    # Load the saved model
+save_dir ='models/v3/base/pytorch_ff_best_model.pth'    # Load the saved model
 model_ff.load_state_dict(torch.load(save_dir))          # Load the model
 
 start_time = time.time()        # Start the timer
@@ -170,7 +170,7 @@ print("Converting reports to DataFrame...")
 
 report_df = pd.DataFrame(reports)
 
-output_file = 'data/processed/evaluation_reports_v2.1.csv'  # Define the output file path
+output_file = 'data/processed/evaluation_reports_v3.csv'  # Define the output file path
 report_df.to_csv(output_file, index=False)                  # Save the report DataFrame to a CSV file
 print(f"Evaluation reports saved to '{output_file}'")       # Print the output file path
 print(report_df)                                            # Print the report DataFrame    

@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import re
 from nltk.tokenize import word_tokenize
 from nltk import sent_tokenize
@@ -12,6 +13,7 @@ from datetime import datetime
 import time 
 from sklearn.metrics.pairwise import cosine_similarity
 from joblib import Parallel, delayed
+from multiprocessing import Pool, cpu_count
 
 # nltk.download('punkt')
 # nltk.download('vader_lexicon')
@@ -83,15 +85,15 @@ def convert_duration_to_minutes(duration):
 if __name__ == "__main__":
     reviews_df = pd.read_csv('data/processed/reviews.csv')      # Load reviews data
     movies_df = pd.read_csv('data/processed/movie_details.csv') # Load movies data
-    reviews_df.shape
-    movies_df.shape
+    # reviews_df.shape
+    # movies_df.shape
 
+    total_start_time = time.time() # Start the total timer
 
-    start_time_single = time.time() # Start the timer
-
-    print('Text-Based Features')
     # 1. Text-Based Features 
     # ------------------------------------------------------------------------------------------------------------
+    print('\n----Generating Text-Based Features----')
+    start_time = time.time() # Start the timer
 
     sid = SentimentIntensityAnalyzer() # Initialize the SentimentIntensityAnalyzer
 
@@ -115,82 +117,119 @@ if __name__ == "__main__":
     for i, keyword in enumerate(keywords):
         reviews_df[f'has_{keyword}'] = [flags[i] for flags in keyword_flags]
 
+    end_time = time.time()
+    print(f"Text-Based Features Execution Time: {end_time - start_time:.2f} seconds\n")
+    
 
-    print('Date-Based Features')
     # 2. Date-Based Features
     # ------------------------------------------------------------------------------------------------------------
+    print('\n----Generating Date-Based Features----')
+    start_time = time.time() # Start the timer
+    
     reviews_df['review_date'] = pd.to_datetime(reviews_df['review_date'])   # Convert review_date to datetime
     reviews_df['review_year'] = reviews_df['review_date'].dt.year           # Extract year
     reviews_df['review_month'] = reviews_df['review_date'].dt.month         # Extract month
     reviews_df['review_day'] = reviews_df['review_date'].dt.day             # Extract day
 
+    end_time = time.time()
+    print(f"Date-Based Features Execution Time: {end_time - start_time:.2f} seconds\n")
 
-    print('Movie Details Features')
+
     # 3. Movie Details Features
+    print('\n----Generating Movie Details Features----')
     # ------------------------------------------------------------------------------------------------------------
+    start_time = time.time() # Start the timer
+    
     movies_df['duration_minutes'] = movies_df['duration'].apply(convert_duration_to_minutes) # Convert duration to minutes
-
     # Genre encoding (assuming 'genre' is categorical)
     # movies_df = pd.get_dummies(movies_df, columns=['genre'], prefix='genre')
-
     merged_df = pd.merge(reviews_df, movies_df, on='movie_id', how='inner') # Merge reviews_df and movies_df on 'movie_id'
 
+    end_time = time.time()
+    print(f"Movie Details Features Execution Time: {end_time - start_time:.2f} seconds\n")
+    
 
-    print('Statistical Features')
     # 4. Statistical Features
     # ------------------------------------------------------------------------------------------------------------
+    print('\n----Generating Statistical Features----')
+    start_time = time.time() # Start the timer
+    
     rating_stats = reviews_df.groupby('movie_id')['rating'].agg(['mean', 'median', 'std']).reset_index()    # Calculate rating statistics
     rating_stats.columns = ['movie_id', 'rating_mean', 'rating_median', 'rating_std']                       # Rename columns
 
     final_df = pd.merge(merged_df, rating_stats, on='movie_id', how='left') # Merge rating_stats with merged_df on 'movie_id'
     
+    end_time = time.time()
+    print(f"Statistical Features Execution Time: {end_time - start_time:.2f} seconds\n")
     
-    print('Cosine Similarity Features')
+    
     # 5. Cosine Similarity Features
     # ------------------------------------------------------------------------------------------------------------
+    print('\n----Generating Cosine Similarity Features----')
+    start_time = time.time()  # Start the timer
+
     def compute_cosine_similarity(tfidf_matrix1, tfidf_matrix2):
         return cosine_similarity(tfidf_matrix1, tfidf_matrix2).diagonal()
     
-    # Initialize TfidfVectorizer
+    def compute_cosine_similarity_batched(tfidf_matrix1, tfidf_matrix2, batch_size=100):
+        num_samples = tfidf_matrix1.shape[0]
+        cosine_similarities = []
+
+        for start_idx in range(0, num_samples, batch_size):
+            end_idx = min(start_idx + batch_size, num_samples)
+            # Compute cosine similarity for the current batch
+            cosine_sim = cosine_similarity(tfidf_matrix1[start_idx:end_idx], tfidf_matrix2[start_idx:end_idx]).diagonal()
+            cosine_similarities.append(cosine_sim)
+
+        # Flatten the list of results into a single array
+        return np.hstack(cosine_similarities)
+
     tfidf_vectorizer = TfidfVectorizer()
-    
+
+    # --- First Pair: Review Text and Plot Summary ---
     # Combine review_text and plot_summary for fitting the vectorizer
     combined_text = final_df['review_text'].fillna('').tolist() + final_df['plot_summary'].fillna('').tolist()
-    
+
     # Fit the vectorizer on the combined text
     tfidf_vectorizer.fit(combined_text)
-    
+
     # Transform review_text and plot_summary separately
     tfidf_review_text = tfidf_vectorizer.transform(final_df['review_text'].fillna(''))
     tfidf_plot_summary = tfidf_vectorizer.transform(final_df['plot_summary'].fillna(''))
-    
-    # Compute cosine similarity between review_text and plot_summary using parallel processing
-    cosine_sim_review_plot = Parallel(n_jobs=-1)(delayed(compute_cosine_similarity)(tfidf_review_text[i], tfidf_plot_summary[i]) for i in range(tfidf_review_text.shape[0]))
-    
+
+    # Compute cosine similarity between review_text and plot_summary
+    cosine_sim_review_plot = compute_cosine_similarity_batched(tfidf_review_text, tfidf_plot_summary)
+
     # Add cosine similarity to final_df
     final_df['cosine_sim_review_plot'] = cosine_sim_review_plot
-    
+
+    # --- Second Pair: Review Summary and Plot Synopsis ---
     # Combine review_summary and plot_synopsis for fitting the vectorizer
     combined_summary = final_df['review_summary'].fillna('').tolist() + final_df['plot_synopsis'].fillna('').tolist()
-    
+
     # Fit the vectorizer on the combined summary
     tfidf_vectorizer.fit(combined_summary)
-    
+
     # Transform review_summary and plot_synopsis separately
     tfidf_review_summary = tfidf_vectorizer.transform(final_df['review_summary'].fillna(''))
     tfidf_plot_synopsis = tfidf_vectorizer.transform(final_df['plot_synopsis'].fillna(''))
-    
-    # Compute cosine similarity between review_summary and plot_synopsis using parallel processing
-    cosine_sim_summary_synopsis = Parallel(n_jobs=-1)(delayed(compute_cosine_similarity)(tfidf_review_summary[i], tfidf_plot_synopsis[i]) for i in range(tfidf_review_summary.shape[0]))
-    
+
+    # Compute cosine similarity between review_summary and plot_synopsis
+    cosine_sim_summary_synopsis = compute_cosine_similarity_batched(tfidf_review_summary, tfidf_plot_synopsis)
+
     # Add cosine similarity to final_df
     final_df['cosine_sim_summary_synopsis'] = cosine_sim_summary_synopsis
-    
-    
-    print('TF-IDF Features')
+
+    end_time = time.time()
+    print(f"Cosine Similarity Features Execution Time: {end_time - start_time:.2f} seconds\n")
+
+
     # 6. TF-IDF Features
     # ------------------------------------------------------------------------------------------------------------
-    tfidf = TfidfVectorizer()                                                               # Initialize the TfidfVectorizer
+    print('\n----Generating TF-IDF Features----')
+    start_time = time.time() # Start the timer
+    
+    tfidf = TfidfVectorizer(max_features=5000)                                                               # Initialize the TfidfVectorizer
     tfidf_matrix = tfidf.fit_transform(final_df['review_text'])                             # Fit and transform the text data
     tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=tfidf.get_feature_names_out())  # Create a DataFrame from the matrix
     # final_df = pd.concat([final_df, tfidf_df], axis=1)
@@ -200,13 +239,18 @@ if __name__ == "__main__":
     svd_df = pd.DataFrame(svd_matrix, columns=[f'svd_{i}' for i in range(100)])     # Create a DataFrame from the matrix
     final_df = pd.concat([final_df, svd_df], axis=1)                                # Concatenate the SVD features to the final DataFrame
 
-
-    print('Saving')
+    end_time = time.time()
+    print(f"TF-IDF Features Execution Time: {end_time - start_time:.2f} seconds\n")
+    
+    
     # Save the engineered datasets
     # ------------------------------------------------------------------------------------------------------------
-    # reviews_df.to_parquet('data/processed/v3/reviews_engineered.parquet', index=False)  # Save reviews_df
-    # movies_df.to_parquet('data/processed/v3/movies_engineered.parquet', index=False)    # Save movies_df
-    # merged_df.to_parquet('data/processed/v3/merged.parquet', index=False)               # Save merged_df
+    print('\n----Saving----')
+    start_time = time.time() # Start the timer
+    
+    reviews_df.to_parquet('data/processed/v3/reviews_engineered.parquet', index=False)  # Save reviews_df
+    movies_df.to_parquet('data/processed/v3/movies_engineered.parquet', index=False)    # Save movies_df
+    merged_df.to_parquet('data/processed/v3/merged.parquet', index=False)               # Save merged_df
     final_df.to_parquet('data/processed/v3/final_engineered.parquet', index=False)      # Save final_df
 
     # # Load Parquet files back into Pandas DataFrames
@@ -215,8 +259,9 @@ if __name__ == "__main__":
     # merged_df = pd.read_parquet('data/processed/merged.parquet')
     # final_df = pd.read_parquet('data/processed/final_engineered.parquet')
 
+    end_time = time.time()
+    print(f"Saving Execution Time: {end_time - start_time:.2f} seconds\n")
+
     # -----------------------------
-    end_time_single = time.time()                                       # Stop the timer
-    exec_time_single = end_time_single - start_time_single              # Calculate the execution time
-    print(f"Execution Time (Single): {exec_time_single:.2f} seconds\n") 
-    
+    total_end_time = time.time()  # Stop the total timer
+    print(f"\n\nTotal Execution Time: {total_end_time - total_start_time:.2f} seconds")

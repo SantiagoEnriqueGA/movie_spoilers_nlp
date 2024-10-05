@@ -4,10 +4,10 @@ from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_sp
 from lightgbm import LGBMClassifier
 from sklearn.metrics import classification_report
 
-X_train = joblib.load('data/processed/v2/splits/base/X_train.pkl')  # Load the training data
-X_test = joblib.load('data/processed/v2/splits/base/X_test.pkl')    # Load the test data
-y_train = joblib.load('data/processed/v2/splits/base/y_train.pkl')  # Load the training labels
-y_test = joblib.load('data/processed/v2/splits/base/y_test.pkl')    # Load the test labels
+X_train = joblib.load('data/processed/v3/splits/base/X_train.pkl')  # Load the training data
+X_test = joblib.load('data/processed/v3/splits/base/X_test.pkl')    # Load the test data
+y_train = joblib.load('data/processed/v3/splits/base/y_train.pkl')  # Load the training labels
+y_test = joblib.load('data/processed/v3/splits/base/y_test.pkl')    # Load the test labels
 
 # Take a subset of the training data for tuning
 X_train_subset, _, y_train_subset, _ = train_test_split(X_train, y_train, test_size=0.9, random_state=42, stratify=y_train)
@@ -47,5 +47,5 @@ report = classification_report(y_test, y_pred)  # Get the classification report
 print('Best LightGBM Model Classification Report:')
 print(report)
 
-joblib.dump(best_lgbm_full, 'models/v2/base/_tuned.pkl')    # Save the best LightGBM model trained on full dataset
+joblib.dump(best_lgbm_full, 'models/v3/base/_tuned.pkl')    # Save the best LightGBM model trained on full dataset
 print('Saved the best LightGBM model trained on full dataset.')

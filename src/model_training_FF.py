@@ -8,10 +8,10 @@ from torch.utils.tensorboard import SummaryWriter
 import datetime
 from src.ml_utils import SparseDataset, ConfigurableNN, train, evaluate, train_optuna, get_classification_report
 
-X_train = joblib.load('data/processed/v2/splits/base/X_train.pkl')  # Load the training data
-X_test = joblib.load('data/processed/v2/splits/base/X_test.pkl')    # Load the test data
-y_train = joblib.load('data/processed/v2/splits/base/y_train.pkl')  # Load the training labels
-y_test = joblib.load('data/processed/v2/splits/base/y_test.pkl')    # Load the test labels
+X_train = joblib.load('data/processed/v3/splits/base/X_train.pkl')  # Load the training data
+X_test = joblib.load('data/processed/v3/splits/base/X_test.pkl')    # Load the test data
+y_train = joblib.load('data/processed/v3/splits/base/y_train.pkl')  # Load the training labels
+y_test = joblib.load('data/processed/v3/splits/base/y_test.pkl')    # Load the test labels
 
 # Take a sample of the data for testing logic
 # sample_size = 100000
@@ -44,9 +44,8 @@ model = ConfigurableNN(X_train.shape[1], hidden_dims, dropout_rate).to(device)  
 criterion = nn.BCEWithLogitsLoss()                                              # Initialize the loss function
 optimizer = optim.Adam(model.parameters(), lr=lr/3)                             # Initialize the optimizer
 scheduler = ReduceLROnPlateau(optimizer, 'min', patience=patience//3)           # Initialize the scheduler
-writer = SummaryWriter(log_dir=f'runs/optuna/ff_best_trial_
-                       {datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')    # Initialize the TensorBoard writer
-save_dir ='models/v2/base/pytorch_ff_best_model.pth'                            # Set the save directory
+writer = SummaryWriter(log_dir=f'runs/optuna/ff_best_trial_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')    # Initialize the TensorBoard writer
+save_dir ='models/v3/base/pytorch_ff_best_model.pth'                            # Set the save directory
 
 # Train the model with the best hyperparameters
 train(model, train_loader, test_loader, criterion, optimizer, scheduler, writer, device, save_dir, patience=patience, epochs=1000)

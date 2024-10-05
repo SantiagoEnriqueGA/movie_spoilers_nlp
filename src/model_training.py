@@ -13,10 +13,10 @@ from sklearn.metrics import classification_report
 # Base Data
 # ---------------------------------------------------------------------------------------------
 
-X_train = joblib.load('data/processed/v2/splits/base/X_train.pkl')  # Load the training data
-X_test = joblib.load('data/processed/v2/splits/base/X_test.pkl')    # Load the testing data
-y_train = joblib.load('data/processed/v2/splits/base/y_train.pkl')  # Load the training labels
-y_test = joblib.load('data/processed/v2/splits/base/y_test.pkl')    # Load the testing labels
+X_train = joblib.load('data/processed/v3/splits/base/X_train.pkl')  # Load the training data
+X_test = joblib.load('data/processed/v3/splits/base/X_test.pkl')    # Load the testing data
+y_train = joblib.load('data/processed/v3/splits/base/y_train.pkl')  # Load the training labels
+y_test = joblib.load('data/processed/v3/splits/base/y_test.pkl')    # Load the testing labels
 
 # Models to train
 models = {
@@ -29,7 +29,7 @@ models = {
     'Gradient Boosting': GradientBoostingClassifier(random_state=42, verbose=1),
     'AdaBoost': AdaBoostClassifier(random_state=42),
     'Linear SVC': LinearSVC(random_state=42, verbose=1),
-    'Decision Tree': DecisionTreeClassifier(random_state=42)
+    # 'Decision Tree': DecisionTreeClassifier(random_state=42)
 }
 
 # Train and evaluate each model
@@ -56,7 +56,7 @@ for model_name, model in models.items():
     print(report)
     
     # Save the trained model
-    joblib.dump(model, f'models/v2/base/{model_name.replace(" ", "_").lower()}_model.pkl')
+    joblib.dump(model, f'models/v3/base/{model_name.replace(" ", "_").lower()}_model.pkl')
     print(f'Saved {model_name} model.\n')
 
 
@@ -65,10 +65,10 @@ for model_name, model in models.items():
 # SMOTE Data
 # ---------------------------------------------------------------------------------------------
 
-X_train = joblib.load('data/processed/v2/splits/smote/X_train.pkl') # Load the training data
-X_test = joblib.load('data/processed/v2/splits/smote/X_test.pkl')   # Load the testing data
-y_train = joblib.load('data/processed/v2/splits/smote/y_train.pkl') # Load the training labels
-y_test = joblib.load('data/processed/v2/splits/smote/y_test.pkl')   # Load the testing labels
+X_train = joblib.load('data/processed/v3/splits/smote/X_train.pkl') # Load the training data
+X_test = joblib.load('data/processed/v3/splits/smote/X_test.pkl')   # Load the testing data
+y_train = joblib.load('data/processed/v3/splits/smote/y_train.pkl') # Load the training labels
+y_test = joblib.load('data/processed/v3/splits/smote/y_test.pkl')   # Load the testing labels
 
 # Models to train
 models = {
@@ -108,7 +108,7 @@ for model_name, model in models.items():
     print(report)
     
     # Save the trained model
-    joblib.dump(model, f'models/v2/smote/{model_name.replace(" ", "_").lower()}_model.pkl')
+    joblib.dump(model, f'models/v3/smote/{model_name.replace(" ", "_").lower()}_model.pkl')
     print(f'Saved {model_name} model.\n')
 
 
@@ -116,10 +116,10 @@ for model_name, model in models.items():
 # SMOTE PCA Data
 # ---------------------------------------------------------------------------------------------
 
-X_train = joblib.load('data/processed/v2/splits/smote_pca/X_train.pkl') # Load the training data
-X_test = joblib.load('data/processed/v2/splits/smote_pca/X_test.pkl')   # Load the testing data
-y_train = joblib.load('data/processed/v2/splits/smote_pca/y_train.pkl') # Load the training labels
-y_test = joblib.load('data/processed/v2/splits/smote_pca/y_test.pkl')   # Load the testing labels
+X_train = joblib.load('data/processed/v3/splits/smote_pca/X_train.pkl') # Load the training data
+X_test = joblib.load('data/processed/v3/splits/smote_pca/X_test.pkl')   # Load the testing data
+y_train = joblib.load('data/processed/v3/splits/smote_pca/y_train.pkl') # Load the training labels
+y_test = joblib.load('data/processed/v3/splits/smote_pca/y_test.pkl')   # Load the testing labels
 
 # Models to train
 models = {
@@ -159,5 +159,5 @@ for model_name, model in models.items():
     print(report)
     
     # Save the trained model
-    joblib.dump(model, f'models/v2/smote_pca/{model_name.replace(" ", "_").lower()}_model.pkl')
+    joblib.dump(model, f'models/v3/smote_pca/{model_name.replace(" ", "_").lower()}_model.pkl')
     print(f'Saved {model_name} model.\n')

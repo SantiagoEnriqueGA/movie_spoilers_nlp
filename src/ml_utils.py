@@ -13,25 +13,30 @@ import optuna
 
 class SparseDataset(Dataset):
     """
-    A custom PyTorch dataset for handling sparse data.
+    A custom PyTorch dataset for handling sparse and dense data.
 
     Args:
-        X (scipy.sparse.csr_matrix): The input data as a sparse matrix.
+        X (scipy.sparse.csr_matrix or numpy.ndarray): The input data as a sparse matrix or dense array.
         y (pandas.Series): The target labels.
 
     Returns:
         tuple: A tuple containing the input data and target label as tensors.
     """
-    def __init__(self, X, y):   # Initialize the dataset
-        self.X = X              # Input data
-        self.y = y              # Target labels
+    def __init__(self, X, y):
+        self.X = X  # Input data (sparse matrix or dense array)
+        self.y = y  # Target labels
 
-    def __len__(self):          # Get the length of the dataset
+    def __len__(self):
         return self.X.shape[0]  # Number of samples in the dataset
 
-    def __getitem__(self, idx): # Get a sample from the dataset
-        X_data = torch.tensor(self.X[idx].toarray(), dtype=torch.float32).squeeze()     # Convert sparse matrix to tensor
-        y_data = torch.tensor(self.y.iloc[idx], dtype=torch.float32)                    # Convert label to tensor
+    def __getitem__(self, idx):
+        # Check if the data is a sparse matrix and convert accordingly
+        if hasattr(self.X[idx], 'toarray'):
+            X_data = torch.tensor(self.X[idx].toarray(), dtype=torch.float32).squeeze()
+        else:
+            X_data = torch.tensor(self.X[idx], dtype=torch.float32).squeeze()
+
+        y_data = torch.tensor(self.y.iloc[idx], dtype=torch.float32)  # Convert label to tensor
         return X_data, y_data
 
 class SequenceDataset(Dataset):
@@ -59,8 +64,13 @@ class SequenceDataset(Dataset):
         return self.X.shape[0]  # Number of samples in the dataset
 
     def __getitem__(self, idx): # Get a sample from the dataset
-        X_data = torch.tensor(self.X[idx].toarray(), dtype=torch.float32)   # Convert sparse matrix to tensor
-        y_data = torch.tensor(self.y.iloc[idx], dtype=torch.float32)        # Convert label to tensor
+        # Check if the data is a sparse matrix and convert accordingly
+        if hasattr(self.X[idx], 'toarray'):
+            X_data = torch.tensor(self.X[idx].toarray(), dtype=torch.float32)
+        else:
+            X_data = torch.tensor(self.X[idx], dtype=torch.float32)
+        
+        y_data = torch.tensor(self.y.iloc[idx], dtype=torch.float32)  # Convert label to tensor
         return X_data, y_data
     
 class ConfigurableLSTM(nn.Module):
@@ -98,11 +108,23 @@ class ConfigurableLSTM(nn.Module):
         Returns:
             torch.Tensor: Output tensor of shape (batch_size,)
         """
+        # Check if the input is batched (3D) or unbatched (2D)
+        if len(x.size()) == 2:
+            # If unbatched, add an extra dimension to simulate a batch of size 1
+            x = x.unsqueeze(0)
+            unbatched = True
+        else:
+            unbatched = False
+        
         h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dim).to(x.device)  # Initial hidden state
         c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dim).to(x.device)  # Initial cell state
-        out, _ = self.lstm(x, (h_0, c_0))   # Forward pass through LSTM
-        out = self.fc(out[:, -1, :])        # Use the output from the last time step
-        return out.squeeze()                # Return the output
+
+        out, _ = self.lstm(x, (h_0, c_0))  # Forward pass through LSTM
+        out = self.fc(out[:, -1, :])       # Use the output from the last time step
+
+        if unbatched:
+            return out.squeeze()           # Squeeze to remove batch dimension for unbatched input
+        return out
     
 class ConfigurableNN(nn.Module):
     """
